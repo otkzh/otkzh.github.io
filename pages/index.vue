@@ -1,5 +1,7 @@
 <template>
-  <Tutorial/>
+  <div>
+    <p>otkzh.github.io</p>
+  </div>
 </template>
 
 <script>

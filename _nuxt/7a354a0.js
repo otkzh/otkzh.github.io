@@ -1,1 +1,0 @@
-(window.webpackJsonp=window.webpackJsonp||[]).push([[4],{280:function(e,t,n){"use strict";n.r(t);var r={},c=n(52),component=Object(c.a)(r,(function(){var e=this,t=e.$createElement;e._self._c;return e._m(0)}),[function(){var e=this,t=e.$createElement,n=e._self._c||t;return n("div",[n("p",[e._v("otkzh.github.io")])])}],!1,null,null,null);t.default=component.exports}}]);

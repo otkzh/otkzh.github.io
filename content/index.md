@@ -10,7 +10,7 @@
 - 埼玉県さいたま市
 
 ## Organization
-- [Code for SAITAMA](https://code4saitama.org/)
+- [Code for SAITAMA](https://www.code4saitama.org/)
 - [Code for CAT](https://code4cat.org/)
 - [シビックテックさいたま](https://www.civictechsaitama.com/)
 - [岩槻映画祭](https://festival.movie.saitama.jp/)

@@ -5,7 +5,6 @@ https://otkzh.github.io/
 
 ```bash
 # install dependencies
-$ npm i
 $ npm ci
 
 # serve with hot reload at localhost:3000

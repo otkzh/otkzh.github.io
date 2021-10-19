@@ -23,10 +23,16 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           check-latest: true
+
       - name: Install NPM packages
         run: npm ci
+
+      - name: Lint
+        run: npm run Lint
+
       - name: Build website
         run: npm run generate --if-present
+
       - name: deploy
         uses: peaceiris/actions-gh-pages@v3
         if: ${{ github.ref == 'refs/heads/master' }}

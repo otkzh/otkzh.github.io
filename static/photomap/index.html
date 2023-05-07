@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPSタグを読み取ってLeaflet.jsで表示するサンプル</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exif-js/2.3.0/exif.min.js"></script>
+    <style>
+        #map {
+            height: 400px;
+        }
+
+        .image-container {
+            display: inline-block;
+            margin: 10px;
+        }
+
+        .image-thumbnail {
+            max-width: 100px;
+            max-height: 100px;
+            object-fit: contain;
+            border: 1px solid #ccc;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <input type="file" id="fileInput" accept="image/*">
+    <div id="map"></div>
+    <div id="images"></div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const mapDiv = document.getElementById('map');
+        const imagesDiv = document.getElementById('images');
+
+        // Leafletマップを初期化
+        const map = L.map('map').setView([35.6895, 139.6917], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        let markers = [];
+
+        fileInput.addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            const imageBase64 = await readFileAsDataURL(file);
+
+            // GPS情報を取得
+            EXIF.getData(file, () => {
+                const lat = EXIF.getTag(file, 'GPSLatitude');
+                const lon = EXIF.getTag(file, 'GPSLongitude');
+                const latRef = EXIF.getTag(file, 'GPSLatitudeRef');
+                const lonRef = EXIF.getTag(file, 'GPSLongitudeRef');
+
+                if (lat && lon && latRef && lonRef) {
+                    const latitude = convertToDecimal(lat, latRef);
+                    const longitude = convertToDecimal(lon, lonRef);
+
+                    // マーカーを追加
+                    const marker = L.marker([latitude, longitude]).addTo(map);
+                    markers.push(marker);
+
+                    // マップのビューを更新
+                    map.setView([latitude, longitude], 13);
+
+                    // 画像を表示
+                    const img = document.createElement('img');
+                    img.src = imageBase64;
+                    img.className = 'image-thumbnail';
+                    img.addEventListener('click', () => {
+                        map.setView([latitude, longitude], 13);
+                    });
+
+                    const imageContainer = document.createElement('div');
+                    imageContainer.className = 'image-container';
+                    imageContainer.appendChild(img);
+                    imagesDiv.appendChild(imageContainer);
+
+
+                    // 画像をローカルストレージに保存
+                    saveImageToLocalStorage(imageBase64, latitude, longitude);
+                } else {
+                    alert('GPS情報が見つかりませんでした。');
+                }
+            });
+        });
+
+        function convertToDecimal(coordinateArray, ref) {
+            const degrees = coordinateArray[0];
+            const minutes = coordinateArray[1];
+            const seconds = coordinateArray[2];
+
+            let coordinate = degrees + (minutes / 60) + (seconds / 3600);
+
+            // 南緯および西経の場合、座標を負にする
+            if (ref === 'S' || ref === 'W') {
+                coordinate = -coordinate;
+            }
+
+            return coordinate;
+        }
+
+        function readFileAsDataURL(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    resolve(event.target.result);
+                };
+                reader.onerror = (error) => {
+                    reject(error);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function saveImageToLocalStorage(imageBase64, latitude, longitude) {
+            const images = JSON.parse(localStorage.getItem('images')) || [];
+            images.push({
+                src: imageBase64,
+                lat: latitude,
+                lon: longitude,
+            });
+            localStorage.setItem('images', JSON.stringify(images));
+        }
+
+        function loadImagesFromLocalStorage() {
+            const images = JSON.parse(localStorage.getItem('images')) || [];
+            images.forEach(image => {
+                const latitude = image.lat;
+                const longitude = image.lon;
+
+                // マーカーを追加
+                const marker = L.marker([latitude, longitude]).addTo(map);
+                markers.push(marker);
+
+                // 画像を表示
+                const img = document.createElement('img');
+                img.src = image.src;
+                img.className = 'image-thumbnail';
+                img.addEventListener('click', () => {
+                    map.setView([latitude, longitude], 13);
+                });
+
+                const imageContainer = document.createElement('div');
+                imageContainer.className = 'image-container';
+                imageContainer.appendChild(img);
+                imagesDiv.appendChild(imageContainer);
+            });
+        }
+
+        // ローカルストレージから画像を読み込む
+        loadImagesFromLocalStorage();
+    </script>
+</body>
+
+</html>

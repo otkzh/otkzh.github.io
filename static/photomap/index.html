@@ -75,17 +75,23 @@
         }
 
         function saveImageToLocalStorage(imageBase64, latitude, longitude, comment) {
-            const images = JSON.parse(localStorage.getItem('images')) || [];
-            images.push({ imageBase64, latitude, longitude, comment });
-            localStorage.setItem('images', JSON.stringify(images));
+            const imageKey = 'image_' + new Date().getTime();
+            const image = { imageBase64, latitude, longitude, comment };
+            localStorage.setItem(imageKey, JSON.stringify(image));
+
+            const imageKeys = JSON.parse(localStorage.getItem('image_keys')) || [];
+            imageKeys.push(imageKey);
+            localStorage.setItem('image_keys', JSON.stringify(imageKeys));
         }
 
         function loadImagesFromLocalStorage() {
-            const images = JSON.parse(localStorage.getItem('images')) || [];
+            const imageKeys = JSON.parse(localStorage.getItem('image_keys')) || [];
             let firstImagePosition = null;
 
-            images.forEach((image, index) => {
+            imageKeys.forEach((imageKey, index) => {
+                const image = JSON.parse(localStorage.getItem(imageKey));
                 displayImage(image.imageBase64, image.latitude, image.longitude, image.comment);
+
                 if (index === 0) {
                     firstImagePosition = { latitude: image.latitude, longitude: image.longitude };
                 }

@@ -14,7 +14,7 @@
   "eslint.format.enable": true, // eslintの自動フォーマット
   // ↓自動フォーマット（stylelint）
   "editor.codeActionsOnSave": {
-    "source.fixAll.stylelint": true
+    "source.fixAll.stylelint": "explicit"
   },
   // ↓自動フォーマット（Format HTML in PHP）
   "editor.tabSize": 2, // indent size

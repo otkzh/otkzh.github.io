@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>EXIF 簡易チェック（GPS & カメラ名）</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      max-width: 720px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+
+    h1 {
+      font-size: 1.2rem;
+    }
+
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      padding: 1rem;
+      margin-top: 1rem;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 10em 1fr;
+      gap: .5rem .75rem;
+      align-items: start;
+    }
+
+    .muted {
+      color: #666;
+    }
+
+    .ok {
+      color: #067d00;
+      font-weight: 600;
+    }
+
+    .ng {
+      color: #a40000;
+      font-weight: 600;
+    }
+
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .95em;
+    }
+
+  </style>
+  <!-- exifr は読み取り専用で軽量。full版ならGPSや一部フォーマットもOK -->
+  <script src="https://unpkg.com/exifr/dist/full.umd.js"></script>
+</head>
+
+<body>
+  <h1>EXIF 簡易チェック（GPS & カメラ名）</h1>
+  <p class="muted">画像を選ぶと、GPSの有無とカメラ名（Make/Model）を表示します。EXIF非対応の画像は取得できません。</p>
+
+  <input id="file" type="file" accept="image/*" />
+  <div id="result" class="card" style="display:none;"></div>
+
+  <script>
+    const $file = document.getElementById('file');
+    const $result = document.getElementById('result');
+
+    function show(lines) {
+      $result.style.display = 'block';
+      $result.innerHTML = `
+        <div class="row">
+          ${lines.map(([k, v]) => `
+            <div class="muted">${k}</div>
+            <div>${v}</div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function esc(s) { return String(s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])); }
+
+    async function handleFile(file) {
+      if (!file) return;
+
+      // 初期表示
+      show([
+        ['ファイル名', `<span class="mono">${esc(file.name)}</span>`],
+        ['状態', '解析中…']
+      ]);
+
+      try {
+        // まずGPS（緯度経度）だけを高速で
+        const gps = await exifr.gps(file).catch(() => null);
+        // つぎに全体のEXIFからカメラ名（Make/Model）
+        const exif = await exifr.parse(file, { reviveValues: true }).catch(() => null);
+
+        // GPS判定
+        let gpsStatus = '<span class="ng">なし</span>';
+        let coords = '-';
+        if (gps && (Number.isFinite(gps.latitude) && Number.isFinite(gps.longitude))) {
+          gpsStatus = '<span class="ok">あり</span>';
+          // 小数点6桁に整形（約 ~11cm 精度）
+          const lat = gps.latitude.toFixed(6);
+          const lng = gps.longitude.toFixed(6);
+          const alt = (gps.altitude != null && Number.isFinite(gps.altitude)) ? ` / Alt ${gps.altitude.toFixed(1)}m` : '';
+          coords = `${lat}, ${lng}${alt}`;
+        }
+
+        // カメラ名
+        let make = exif?.Make || exif?.make || '';
+        let model = exif?.Model || exif?.model || '';
+        const camera =
+          (make || model)
+            ? `<span class="ok">${esc([make, model].filter(Boolean).join(' '))}</span>`
+            : '<span class="ng">不明（EXIFにMake/Modelなし）</span>';
+
+        show([
+          ['ファイル名', `<span class="mono">${esc(file.name)}</span>`],
+          ['GPS（有無）', gpsStatus],
+          ['座標（lat, lng）', esc(coords)],
+          ['カメラ名', camera]
+        ]);
+
+      } catch (err) {
+        show([
+          ['ファイル名', `<span class="mono">${esc(file.name)}</span>`],
+          ['エラー', `<span class="ng">${esc(err.message || err)}</span>`],
+          ['ヒント', 'HEIC/PNGなどEXIF非対応の形式や、撮影時に位置情報を保存していない可能性があります。']
+        ]);
+      }
+    }
+
+    $file.addEventListener('change', () => handleFile($file.files[0]));
+  </script>
+</body>
+
+</html>

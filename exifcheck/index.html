@@ -1,138 +1,197 @@
 <!doctype html>
-<html lang="ja">
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>EXIF付きアップロード（GPS自動チェック）</title>
+<style>
+  body {
+    font-family: system-ui, sans-serif;
+    max-width: 720px;
+    margin: 24px auto;
+    padding: 0 12px
+  }
 
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>EXIF 簡易チェック（GPS & カメラ名）</title>
-  <style>
-    body {
-      font-family: system-ui, sans-serif;
-      max-width: 720px;
-      margin: 2rem auto;
-      padding: 0 1rem;
+  .row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 8px 0
+  }
+
+  .hint {
+    color: #555
+  }
+
+  .ok {
+    color: #067d00;
+    font-weight: 600
+  }
+
+  .ng {
+    color: #a40000;
+    font-weight: 600
+  }
+
+  #result {
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    padding: 12px;
+    margin-top: 12px;
+    display: none
+  }
+
+  button {
+    padding: .6em 1em;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    background: #fff
+  }
+
+</style>
+<script src="https://unpkg.com/exifr/dist/full.umd.js"></script>
+<script src="https://unpkg.com/piexifjs"></script>
+<h1>写真アップロード（GPS自動チェック）</h1>
+<p class="hint">※ 位置情報付きで確実にアップロードするには、<b>「デバイス内」→ DCIM/Camera</b> から選ぶか、下の「新しく撮影」がおすすめです。</p>
+
+<div class="row">
+  <label><b>通常選択:</b> <input id="pick" type="file" accept="image/*"></label>
+  <label><b>新しく撮影:</b> <input id="capture" type="file" accept="image/*" capture="environment"></label>
+</div>
+
+<div id="result"></div>
+
+<script>
+  const $pick = document.getElementById('pick');
+  const $capture = document.getElementById('capture');
+  const $result = document.getElementById('result');
+  let currentFile = null;   // 選ばれた元ファイル
+  let taggedBlob = null;    // GPS付与後のBlob
+
+  function esc(s) { return String(s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])) }
+
+  function render(status) {
+    $result.style.display = 'block';
+    $result.innerHTML = `
+    <div><b>ファイル:</b> ${status.name ? `<span>${esc(status.name)}</span>` : '-'}</div>
+    <div><b>GPS:</b> ${status.gps ? `<span class="ok">あり</span> (${status.coords || ''})` : `<span class="ng">なし</span>`}</div>
+    <div><b>カメラ:</b> ${status.camera || '-'}</div>
+    <div class="row">
+      ${status.showFix ? `<button id="fix">GPSを付与してアップロード</button>` : ''}
+      ${status.canUpload ? `<button id="upload">このままアップロード</button>` : ''}
+    </div>
+    <div class="hint">${status.note || ''}</div>
+  `;
+    if (status.showFix) document.getElementById('fix').onclick = fixAndUpload;
+    if (status.canUpload) document.getElementById('upload').onclick = uploadOriginal;
+  }
+
+  async function analyze(file) {
+    currentFile = file; taggedBlob = null;
+    if (!file) return;
+    render({ name: file.name, gps: false, camera: '解析中…' });
+
+    // まずGPS情報
+    const gps = await exifr.gps(file).catch(() => null);
+    // カメラ名
+    const exif = await exifr.parse(file, { reviveValues: true }).catch(() => null);
+    const make = exif?.Make || exif?.make || '';
+    const model = exif?.Model || exif?.model || '';
+    const camera = (make || model) ? `<span class="ok">${esc([make, model].filter(Boolean).join(' '))}</span>`
+      : `<span class="ng">不明</span>`;
+
+    let hasGPS = false, coordsTxt = '';
+    if (gps && Number.isFinite(gps.latitude) && Number.isFinite(gps.longitude)) {
+      hasGPS = true;
+      coordsTxt = `${gps.latitude.toFixed(6)}, ${gps.longitude.toFixed(6)}${Number.isFinite(gps.altitude) ? ' / Alt ' + gps.altitude.toFixed(1) + 'm' : ''}`;
     }
 
-    h1 {
-      font-size: 1.2rem;
-    }
+    render({
+      name: file.name,
+      gps: hasGPS,
+      coords: coordsTxt,
+      camera,
+      canUpload: true,
+      showFix: !hasGPS,
+      note: !hasGPS ? 'EXIFにGPSがありません。許可をいただければ現在地を付与して送信できます。' : 'このままアップロードできます。'
+    });
+  }
 
-    .card {
-      border: 1px solid #ddd;
-      border-radius: 12px;
-      padding: 1rem;
-      margin-top: 1rem;
-    }
+  async function getCoords() {
+    return new Promise((res, rej) => {
+      navigator.geolocation.getCurrentPosition(
+        pos => res(pos.coords),
+        err => rej(err),
+        { enableHighAccuracy: true, timeout: 15000 }
+      );
+    });
+  }
 
-    .row {
-      display: grid;
-      grid-template-columns: 10em 1fr;
-      gap: .5rem .75rem;
-      align-items: start;
-    }
+  function toRational(v) { const d = 1e7; return [Math.round(Math.abs(v) * d), d] }
+  function toDMSRational(dec) {
+    const deg = Math.floor(Math.abs(dec));
+    const minFloat = (Math.abs(dec) - deg) * 60;
+    const min = Math.floor(minFloat);
+    const sec = (minFloat - min) * 60;
+    const d = 1e7;
+    return [[deg, 1], [min, 1], [Math.round(sec * d), d]];
+  }
 
-    .muted {
-      color: #666;
-    }
-
-    .ok {
-      color: #067d00;
-      font-weight: 600;
-    }
-
-    .ng {
-      color: #a40000;
-      font-weight: 600;
-    }
-
-    .mono {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: .95em;
-    }
-
-  </style>
-  <!-- exifr は読み取り専用で軽量。full版ならGPSや一部フォーマットもOK -->
-  <script src="https://unpkg.com/exifr/dist/full.umd.js"></script>
-</head>
-
-<body>
-  <h1>EXIF 簡易チェック（GPS & カメラ名）</h1>
-  <p class="muted">画像を選ぶと、GPSの有無とカメラ名（Make/Model）を表示します。EXIF非対応の画像は取得できません。</p>
-
-  <input id="file" type="file" accept="image/*" />
-  <div id="result" class="card" style="display:none;"></div>
-
-  <script>
-    const $file = document.getElementById('file');
-    const $result = document.getElementById('result');
-
-    function show(lines) {
-      $result.style.display = 'block';
-      $result.innerHTML = `
-        <div class="row">
-          ${lines.map(([k, v]) => `
-            <div class="muted">${k}</div>
-            <div>${v}</div>
-          `).join('')}
-        </div>
-      `;
-    }
-
-    function esc(s) { return String(s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])); }
-
-    async function handleFile(file) {
-      if (!file) return;
-
-      // 初期表示
-      show([
-        ['ファイル名', `<span class="mono">${esc(file.name)}</span>`],
-        ['状態', '解析中…']
-      ]);
-
-      try {
-        // まずGPS（緯度経度）だけを高速で
-        const gps = await exifr.gps(file).catch(() => null);
-        // つぎに全体のEXIFからカメラ名（Make/Model）
-        const exif = await exifr.parse(file, { reviveValues: true }).catch(() => null);
-
-        // GPS判定
-        let gpsStatus = '<span class="ng">なし</span>';
-        let coords = '-';
-        if (gps && (Number.isFinite(gps.latitude) && Number.isFinite(gps.longitude))) {
-          gpsStatus = '<span class="ok">あり</span>';
-          // 小数点6桁に整形（約 ~11cm 精度）
-          const lat = gps.latitude.toFixed(6);
-          const lng = gps.longitude.toFixed(6);
-          const alt = (gps.altitude != null && Number.isFinite(gps.altitude)) ? ` / Alt ${gps.altitude.toFixed(1)}m` : '';
-          coords = `${lat}, ${lng}${alt}`;
-        }
-
-        // カメラ名
-        let make = exif?.Make || exif?.make || '';
-        let model = exif?.Model || exif?.model || '';
-        const camera =
-          (make || model)
-            ? `<span class="ok">${esc([make, model].filter(Boolean).join(' '))}</span>`
-            : '<span class="ng">不明（EXIFにMake/Modelなし）</span>';
-
-        show([
-          ['ファイル名', `<span class="mono">${esc(file.name)}</span>`],
-          ['GPS（有無）', gpsStatus],
-          ['座標（lat, lng）', esc(coords)],
-          ['カメラ名', camera]
-        ]);
-
-      } catch (err) {
-        show([
-          ['ファイル名', `<span class="mono">${esc(file.name)}</span>`],
-          ['エラー', `<span class="ng">${esc(err.message || err)}</span>`],
-          ['ヒント', 'HEIC/PNGなどEXIF非対応の形式や、撮影時に位置情報を保存していない可能性があります。']
-        ]);
+  async function fixAndUpload() {
+    if (!currentFile) return;
+    try {
+      const coords = await getCoords();
+      const latRef = coords.latitude >= 0 ? 'N' : 'S';
+      const lonRef = coords.longitude >= 0 ? 'E' : 'W';
+      const buf = await currentFile.arrayBuffer();
+      const bin = Array.from(new Uint8Array(buf)).map(c => String.fromCharCode(c)).join('');
+      let exifObj = {};
+      try { exifObj = piexif.load(bin) } catch (_) { }
+      exifObj.GPS = exifObj.GPS || {};
+      exifObj.GPS[piexif.GPSIFD.GPSLatitudeRef] = latRef;
+      exifObj.GPS[piexif.GPSIFD.GPSLatitude] = toDMSRational(coords.latitude);
+      exifObj.GPS[piexif.GPSIFD.GPSLongitudeRef] = lonRef;
+      exifObj.GPS[piexif.GPSIFD.GPSLongitude] = toDMSRational(coords.longitude);
+      exifObj.GPS[piexif.GPSIFD.GPSAltitudeRef] = 0;
+      if (Number.isFinite(coords.altitude)) {
+        exifObj.GPS[piexif.GPSIFD.GPSAltitude] = toRational(coords.altitude);
       }
+      const exifBytes = piexif.dump(exifObj);
+      const withExif = piexif.insert(exifBytes, 'data:image/jpeg;base64,' + btoa(bin));
+      const bs = atob(withExif.split(',')[1]);
+      const ab = new ArrayBuffer(bs.length);
+      const ia = new Uint8Array(ab);
+      for (let i = 0; i < bs.length; i++) ia[i] = bs.charCodeAt(i);
+      taggedBlob = new Blob([ab], { type: 'image/jpeg' });
+      await upload(taggedBlob, currentFile.name.replace(/\.jpe?g$/i, '') + '_geotag.jpg');
+    } catch (e) {
+      render({
+        name: currentFile.name,
+        gps: false,
+        camera: '-',
+        canUpload: true,
+        showFix: true,
+        note: '位置情報の取得に失敗: ' + (e && e.message ? e.message : e)
+      });
     }
+  }
 
-    $file.addEventListener('change', () => handleFile($file.files[0]));
-  </script>
-</body>
+  async function uploadOriginal() {
+    if (!currentFile) return;
+    await upload(currentFile, currentFile.name);
+  }
 
-</html>
+  async function upload(blob, name) {
+    const form = new FormData();
+    form.append('file', blob, name);
+    const resp = await fetch('/upload', { method: 'POST', body: form });
+    render({
+      name,
+      gps: taggedBlob ? true : (await exifr.gps(blob).then(g => !!(g && Number.isFinite(g.latitude) && Number.isFinite(g.longitude))).catch(() => false)),
+      camera: '-',
+      canUpload: false,
+      showFix: false,
+      note: resp.ok ? 'アップロード完了！' : 'アップロードに失敗しました'
+    });
+  }
+
+  $pick.addEventListener('change', () => analyze($pick.files[0]));
+  $capture.addEventListener('change', () => analyze($capture.files[0]));
+</script>

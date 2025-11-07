@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Travel Map</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+     crossorigin=""/>
+     
+    <!-- Inter Font -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    
+    <!-- NEW: Custom Styles for Legend -->
+    <style>
+        .leaflet-bottom.leaflet-right {
+            /* (LeafletのデフォルトのZoomコントロールと重ならないように調整) */
+            padding-bottom: 30px; 
+        }
+        .info.legend {
+            line-height: 1.4;
+        }
+        .info.legend img {
+            /* (アイコンとテキストの整列を微調整) */
+            vertical-align: middle;
+        }
+    </style>
+    <!-- END NEW -->
+
+    <!-- Leaflet JS - MOVED HERE -->
+    <!-- This MUST be loaded before our script that uses L.map() -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+     crossorigin=""></script>
+
+    <!-- Firebase & App Logic -->
+    <script type="module">
+        // Firebase Imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, addDoc, setDoc, onSnapshot, collection, deleteDoc, query, where, getDocs, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Firebase Configuration ---
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{"apiKey":"DEFAULT_KEY","authDomain":"DEFAULT_DOMAIN","projectId":"DEFAULT_PROJECT"}');
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        // --- Global Variables ---
+        let app, db, auth, userId;
+        let map;
+        let markers = {}; // To store markers by docId { docId: markerInstance }
+        let currentLatLng; // To store lat/lng from map click
+        
+        // --- NEW: GeoJSON Global Variables ---
+        let geoJsonLayer; // (GeoJSONレイヤーを保持する変数)
+        let allGeoJsonData; // (すべてのGeoJSONデータを保持する変数)
+        const defaultView = { lat: 35.859, lng: 139.658, zoom: 15 }; // (データがない場合のデフォルト表示)
+        
+        // --- NEW: Category Icons ---
+        // (カテゴリと色のマッピング)
+        const categoryColors = {
+            "ラーメン屋": "red",
+            "居酒屋": "orange",
+            "クラフトビール": "green",
+            "カフェ": "violet", // (修正： 'pink.png' は存在しないため、利用可能な 'violet.png' に変更)
+            "お土産": "blue",
+            "default": "grey" // (デフォルトまたは不明なカテゴリ)
+        };
+        const categoryIcons = {}; // (Leafletアイコンオブジェクトを保持)
+        // --- END NEW ---
+
+
+        // --- DOM Elements ---
+        // Declare as let, assign in DOMContentLoaded
+        let modal, locationNameInput, locationNotesInput, errorText;
+        let categoryFilterContainer; // (復活：カテゴリフィルターのコンテナ)
+
+        // --- Firebase Initialization ---
+        try {
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+            setLogLevel('debug'); // Enable debug logging for Firestore
+
+            // Handle Authentication
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId = user.uid;
+                    console.log("User authenticated. UID:", userId);
+                } else {
+                    console.log("No user signed in, attempting custom token or anonymous sign-in.");
+                    try {
+                        const token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+                        if (token) {
+                            console.log("Attempting sign-in with custom token.");
+                            await signInWithCustomToken(auth, token);
+                            userId = auth.currentUser.uid;
+                            console.log("Signed in with custom token. UID:", userId);
+                        } else {
+                            console.log("Attempting anonymous sign-in.");
+                            await signInAnonymously(auth);
+                            userId = auth.currentUser.uid;
+                            console.log("Signed in anonymously. UID:", userId);
+                        }
+                    } catch (error) {
+                        console.error("Sign-in failed:", error);
+                        // Fallback user ID for local testing if auth fails
+                        userId = 'anon-' + crypto.randomUUID();
+                        console.log("Using fallback anon ID:", userId);
+                    }
+                }
+                
+                // Auth is ready, initialize map and data
+                if (userId) {
+                    setupMap();
+                    loadLocations();
+                } else {
+                    console.error("Could not determine User ID. Map and data loading aborted.");
+                }
+            });
+
+        } catch (e) {
+            console.error("Firebase initialization error:", e);
+            // Display error to user if Firebase fails to init
+            document.getElementById('map').innerHTML = `<div class="p-4 text-red-700 bg-red-100 rounded-md">Failed to initialize application. Please check console for errors.</div>`;
+        }
+
+        // --- Map Functions ---
+
+        /**
+         * Initializes the Leaflet map.
+         */
+        function setupMap() {
+            try {
+                // --- FIX: Check if map is already initialized ---
+                if (map) {
+                    console.log("Map is already initialized. Skipping setup.");
+                    return; 
+                }
+                // --- END FIX ---
+
+                // Check if map container exists
+                if (!document.getElementById('map')) {
+                    console.error("Map container #map not found.");
+                    return;
+                }
+                
+                // Check if L (Leaflet) is defined
+                if (typeof L === 'undefined') {
+                    console.error("Leaflet (L) is not defined. Make sure leaflet.js is loaded.");
+                    return;
+                }
+
+                console.log("Setting up map...");
+                
+                // --- MODIFIED: Initialize map without view ---
+                // (ビューを設定せずにマップを初期化。fitBoundsで後から設定)
+                map = L.map('map');
+                // --- END MODIFIED ---
+                
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                    maxZoom: 18,
+                }).addTo(map);
+
+                // Add map click listener
+                map.on('click', onMapClick);
+                console.log("Map setup complete.");
+
+                // --- NEW: Add GeoJSON data ---
+                addGeoJSONLayer();
+                // --- END NEW ---
+
+            } catch (e) {
+                console.error("Error setting up map:", e);
+                document.getElementById('map').innerHTML = `<div class="p-4 text-red-700 bg-red-100 rounded-md">Error loading map: ${e.message}</div>`;
+            }
+        }
+
+        /**
+         * Handles the map click event.
+         * @param {object} e - The Leaflet click event object.
+         */
+        function onMapClick(e) {
+            currentLatLng = e.latlng; // Store lat/lng
+            console.log("Map clicked at:", currentLatLng);
+            showModal(); // Show the modal to add location info
+        }
+
+        // --- MODIFIED: GeoJSON Functions ---
+
+        /**
+         * Loads GeoJSON data, creates category filters, and displays initial data.
+         * (GeoJSONデータをロードし、カテゴリフィルターを作成し、初期データを表示します)
+         */
+        function addGeoJSONLayer() {
+            if (!map) {
+                console.error("Cannot add GeoJSON layer: Map is not initialized.");
+                return;
+            }
+
+            console.log("Adding GeoJSON layer...");
+
+            // --- NEW: Create Icon objects ---
+            // (アイコンオブジェクトを事前に作成)
+            const iconBaseUrl = 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-';
+            const shadowUrl = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png';
+
+            for (const [category, color] of Object.entries(categoryColors)) {
+                categoryIcons[category] = new L.Icon({
+                    iconUrl: `${iconBaseUrl}${color}.png`,
+                    shadowUrl: shadowUrl,
+                    iconSize: [25, 41],
+                    iconAnchor: [12, 41],
+                    popupAnchor: [1, -34],
+                    shadowSize: [41, 41]
+                });
+            }
+            // --- END NEW ---
+
+            // (KMLから変換したGeoJSONデータ)
+            allGeoJsonData = {
+              "type": "FeatureCollection",
+              "features": [
+                // ラーメン屋
+                { "type": "Feature", "geometry": { "type": "Point", "coordinates": [139.6592641, 35.8570558] }, "properties": { "name": "自家製麺 鶏そば 一瑳", "category": "ラーメン屋" } },
+                { "type": "Feature", "geometry": { "type": "Point", "coordinates": [139.660659, 35.8576527] }, "properties": { "name": "平和軒", "category": "ラーメン屋" } },
+                { "type": "Feature", "geometry": { "type": "Point", "coordinates": [139.65607, 35.8603044] }, "properties": { "name": "浦和ラーメン王", "category": "ラーメン屋" } },
+                { "type": "Feature", "geometry": { "type": "Point", "coordinates": [139.6567429, 35.8606735] }, "properties": { "name": "うさ担 浦和本店", "category": "ラーメン屋" } },
+                // 居酒屋
+                { "type": "Feature", "geometry": { "type": "Point", "coordinates": [139.6575848, 35.859056] }, "properties": { "name": "釣宿酒場 マヅメ 浦和店", "category": "居酒屋" } },
+                { "type": "Feature", "geometry": { "type": "Point", "coordinates": [139.6571422, 35.8595833] }, "properties": { "name": "鳥昇", "category": "居酒屋" } },
+                { "type": "Feature", "geometry": { "type": "Point", "coordinates": [139.6580852, 35.8592313] }, "properties": { "name": "わか大将", "category": "居酒屋" } },
+                { "type": "Feature", "geometry": { "type": "Point", "coordinates": [139.6594379, 35.8572202] }, "properties": { "name": "Nmc KITCHEN", "category": "居酒屋" } },
+                { "type": "Feature", "geometry": { "type": "Point", "coordinates": [139.6560103, 35.8604415] }, "properties": { "name": "モッツバー輪 浦和店", "category": "居酒屋" } },
+                { "type": "Feature", "geometry": { "type": "Point", "coordinates": [139.6545858, 35.8599499] }, "properties": { "name": "酒蔵 力 浦和本店", "category": "居酒屋" } },
+                { "type": "Feature", "geometry": { "type": "Point", "coordinates": [139.6551134, 35.8585243] }, "properties": { "name": "和浦酒場", "category": "居酒屋" } },
+                // クラフトビール
+                { "type": "Feature", "geometry": { "type": "Point", "coordinates": [139.6586135, 35.859914] }, "properties": { "name": "BEERNOVA URAWA", "category": "クラフトビール" } },
+                { "type": "Feature", "geometry": { "type": "Point", "coordinates": [139.6553248, 35.8572524] }, "properties": { "name": "U.B.P BREWERY", "category": "クラフトビール" } },
+                // カフェ
+                { "type": "Feature", "geometry": { "type": "Point", "coordinates": [139.659455, 35.8571432] }, "properties": { "name": "恵比寿屋喫茶店", "category": "カフェ" } },
+                { "type": "Feature", "geometry": { "type": "Point", "coordinates": [139.6577424, 35.8583307] }, "properties": { "name": "YANAKA COFFEE アトレ浦和店", "category": "カフェ" } },
+                // お土産
+                { "type": "Feature", "geometry": { "type": "Point", "coordinates": [139.6558051, 35.8584565] }, "properties": { "name": "十万石 浦和コルソ店", "category": "お土産" } },
+                { "type": "Feature", "geometry": { "type": "Point", "coordinates": [139.6562096, 35.8591272] }, "properties": { "name": "菓匠花見 浦和伊勢丹店", "category": "お土産" } },
+                { "type": "Feature", "geometry": { "type": "Point", "coordinates": [139.6561258, 35.859163] }, "properties": { "name": "菓房 はら山 浦和伊勢丹店", "category": "お土産" } },
+                { "type": "Feature", "geometry": { "type": "Point", "coordinates": [139.6555398, 35.8584005] }, "properties": { "name": "彩果の宝石コルソ店", "category": "お土産" } }
+              ]
+            };
+
+            // --- 復活: createCategoryFilters() call ---
+            createCategoryFilters();
+
+            // --- MODIFIED: Call filterGeoJSON to draw initial layer ---
+            // (初期レイヤー描画のために filterGeoJSON を呼び出す)
+            filterGeoJSON();
+            // --- END MODIFIED ---
+            
+            // --- NEW: Add Legend ---
+            createLegend();
+            // --- END NEW ---
+        }
+        
+        // --- 復活: createCategoryFilters function ---
+        /**
+         * (GeoJSONデータからカテゴリを抽出し、チェックボックスを生成)
+         */
+        function createCategoryFilters() {
+            if (!allGeoJsonData || !categoryFilterContainer) return;
+
+            // (カテゴリのユニークなリストを作成)
+            const categories = [...new Set(allGeoJsonData.features.map(f => f.properties.category))];
+            
+            categoryFilterContainer.innerHTML = ''; // (既存のフィルターをクリア)
+            categories.sort().forEach(category => {
+                const label = document.createElement('label');
+                label.className = 'flex items-center space-x-2 text-sm text-gray-700 cursor-pointer';
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.value = category;
+                checkbox.checked = true;
+                checkbox.className = 'rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50';
+                
+                // (チェックボックス変更時にフィルターを実行)
+                checkbox.addEventListener('change', filterGeoJSON);
+                
+                const text = document.createElement('span');
+                text.textContent = category;
+                
+                label.appendChild(checkbox);
+                label.appendChild(text);
+                categoryFilterContainer.appendChild(label);
+            });
+        }
+        // --- END 復活 ---
+        
+        // --- 復活: filterGeoJSON function (with icon logic) ---
+        /**
+         * (選択されたカテゴリに基づいてGeoJSONレイヤーをフィルタリングし、マップを更新)
+         */
+        function filterGeoJSON() {
+            if (!map || !allGeoJsonData) return;
+
+            // (選択されたカテゴリを取得)
+            const selectedCategories = [];
+            categoryFilterContainer.querySelectorAll('input[type="checkbox"]:checked').forEach(input => {
+                selectedCategories.push(input.value);
+            });
+
+            // (既存のレイヤーを削除)
+            if (geoJsonLayer) {
+                map.removeLayer(geoJsonLayer);
+            }
+
+            // (選択されたカテゴリでフィーチャをフィルタリング)
+            const filteredFeatures = allGeoJsonData.features.filter(feature => 
+                selectedCategories.includes(feature.properties.category)
+            );
+            
+            const filteredGeoJsonData = {
+                "type": "FeatureCollection",
+                "features": filteredFeatures
+            };
+
+            // (新しいGeoJSONレイヤーを作成 - 色付きアイコンのロジックを適用)
+            geoJsonLayer = L.geoJSON(filteredGeoJsonData, {
+                pointToLayer: function (feature, latlng) {
+                    // (カテゴリに基づいてアイコンを選択)
+                    const category = feature.properties.category;
+                    const icon = categoryIcons[category] || categoryIcons["default"];
+                    return L.marker(latlng, { icon: icon });
+                },
+                onEachFeature: (feature, layer) => {
+                    // (フィーチャにポップアップをバインド)
+                    if (feature.properties && feature.properties.name) {
+                        let popupContent = `<strong>${feature.properties.name}</strong>`;
+                        if (feature.properties.category) {
+                            popupContent += `<br><em>${feature.properties.category}</em>`;
+                        }
+                        layer.bindPopup(popupContent);
+                    }
+                }
+            }).addTo(map);
+
+            // (マップの表示範囲を調整)
+            if (filteredFeatures.length > 0) {
+                // (データがある場合、その範囲にフィットさせる)
+                map.fitBounds(geoJsonLayer.getBounds(), { padding: [50, 50] }); // (50pxのパディング)
+            } else {
+                // (データがない場合、デフォルトのビューに設定)
+                map.setView([defaultView.lat, defaultView.lng], defaultView.zoom);
+            }
+        }
+        // --- END 復活 ---
+
+        // --- NEW: Legend Function ---
+        /**
+         * (マップに凡例コントロールを追加)
+         */
+        function createLegend() {
+            const legend = L.control({ position: 'bottomright' });
+
+            legend.onAdd = function (map) {
+                const div = L.DomUtil.create('div', 'info legend bg-white p-3 rounded-md shadow-lg');
+                div.innerHTML = '<h4 class="font-bold mb-2 text-sm">凡例</h4>';
+                
+                // (カテゴリをループして凡例エントリーを作成)
+                for (const [category, color] of Object.entries(categoryColors)) {
+                    if (category === "default") continue; // 'default' は表示しない
+
+                    const iconUrl = categoryIcons[category].options.iconUrl;
+                    
+                    div.innerHTML +=
+                        `<div class="flex items-center mb-1">
+                             <img src="${iconUrl}" width="12" height="20" class="inline-block mr-1" alt="${color} marker">
+                             <span class="text-xs">${category}</span>
+                         </div>`;
+                }
+                return div;
+            };
+
+            legend.addTo(map);
+        }
+        // --- END NEW ---
+
+
+        // --- Firestore Functions ---
+
+        /**
+         * Adds a new location to Firestore.
+         */
+        async function addLocation() {
+            if (!userId) {
+                console.error("Cannot add location: User ID is not set.");
+                // Defend against errorText not being ready
+                if (errorText) {
+                    errorText.textContent = "Error: Not authenticated. Please refresh.";
+                    errorText.classList.remove('hidden');
+                }
+                return;
+            }
+
+            // Defend against DOM elements not being ready
+            if (!locationNameInput || !locationNotesInput || !errorText) {
+                console.error("DOM elements not ready, cannot add location.");
+                return;
+            }
+
+            const name = locationNameInput.value.trim();
+            const notes = locationNotesInput.value.trim();
+
+            if (!name) {
+                errorText.textContent = "Please enter a location name.";
+                errorText.classList.remove('hidden');
+                return;
+            }
+
+            if (!currentLatLng) {
+                console.error("Cannot add location: currentLatLng is not set.");
+                errorText.textContent = "Error: Location coordinates not set. Click map again.";
+                errorText.classList.remove('hidden');
+                return;
+            }
+
+            console.log("Adding location:", name);
+            try {
+                const collectionPath = `artifacts/${appId}/users/${userId}/locations`;
+                await addDoc(collection(db, collectionPath), {
+                    name: name,
+                    notes: notes,
+                    lat: currentLatLng.lat,
+                    lng: currentLatLng.lng,
+                    addedBy: userId // Store who added it
+                });
+                console.log("Location added successfully.");
+                hideModal(); // Hide modal on success
+            } catch (error) {
+                console.error("Error adding document: ", error);
+                errorText.textContent = "Failed to save location. Please try again.";
+                errorText.classList.remove('hidden');
+            }
+        }
+
+        /**
+         * Loads all locations for the current user from Firestore and sets up a real-time listener.
+         */
+        function loadLocations() {
+            if (!userId) {
+                console.error("Cannot load locations: User ID is not set.");
+                return;
+            }
+
+            console.log("Loading locations for user:", userId);
+            const collectionPath = `artifacts/${appId}/users/${userId}/locations`;
+            const q = query(collection(db, collectionPath));
+
+            // Use onSnapshot for real-time updates
+            onSnapshot(q, (querySnapshot) => {
+                console.log("Received location snapshot update.");
+                // Create a set of doc IDs from the snapshot
+                const snapshotDocIds = new Set();
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const docId = doc.id;
+                    snapshotDocIds.add(docId);
+
+                    // Check if marker already exists
+                    if (markers[docId]) {
+                        // Update existing marker's popup (if needed)
+                        // For now, we assume lat/lng don't change. If they could, we'd update position.
+                        markers[docId].setPopupContent(createPopupContent(docId, data.name, data.notes));
+                    } else {
+                        // Create new marker
+                        addMarker(docId, data);
+                    }
+                });
+
+                // Clean up old markers
+                // Check if any markers in our `markers` object were *not* in this snapshot
+                for (const docId in markers) {
+                    if (!snapshotDocIds.has(docId)) {
+                        console.log("Removing stale marker:", docId);
+                        removeMarker(docId);
+                    }
+                }
+
+            }, (error) => {
+                console.error("Error loading locations with onSnapshot: ", error);
+                // Optionally show an error to the user on the map
+            });
+        }
+
+        /**
+         * Deletes a location from Firestore.
+         * @param {string} docId - The Firestore document ID of the location to delete.
+         */
+        async function deleteLocation(docId) {
+            if (!userId || !docId) {
+                console.error("Cannot delete: User ID or Doc ID is missing.");
+                return;
+            }
+
+            console.log("Deleting location:", docId);
+            try {
+                const docPath = `artifacts/${appId}/users/${userId}/locations/${docId}`;
+                await deleteDoc(doc(db, docPath));
+                console.log("Location deleted successfully.");
+                // The onSnapshot listener will automatically call removeMarker
+            } catch (error) {
+                console.error("Error deleting document: ", error);
+                alert("Failed to delete location. Please try again."); // Using alert as a fallback
+            }
+        }
+
+
+        // --- Marker & Popup Functions ---
+
+        /**
+         * Adds a marker to the map.
+         * @param {string} docId - The Firestore document ID.
+         * @param {object} data - The location data (name, notes, lat, lng).
+         */
+        function addMarker(docId, data) {
+            if (!map) {
+                console.error("Cannot add marker: Map is not initialized.");
+                return;
+            }
+            try {
+                // --- MODIFIED: Add marker with custom 'userMarker' property ---
+                // (マーカーに 'userMarker' プロパティを追加)
+                const marker = L.marker([data.lat, data.lng], { userMarker: true }).addTo(map);
+                // --- END MODIFIED ---
+                
+                const popupContent = createPopupContent(docId, data.name, data.notes);
+                marker.bindPopup(popupContent);
+                
+                markers[docId] = marker; // Store marker
+                console.log("Marker added:", docId);
+            } catch (e) {
+                console.error(`Error adding marker for doc ${docId}:`, e, data);
+            }
+        }
+
+        /**
+         * Removes a marker from the map and from the `markers` object.
+         * @param {string} docId - The Firestore document ID of the marker to remove.
+         */
+        function removeMarker(docId) {
+            const marker = markers[docId];
+            if (marker) {
+                map.removeLayer(marker); // Remove from map
+                delete markers[docId]; // Remove from tracking object
+                console.log("Marker removed:", docId);
+            }
+        }
+
+        /**
+         * Creates the HTML content for a marker's popup.
+         * @param {string} docId - The Firestore document ID.
+         * @param {string} name - The location name.
+         * @param {string} notes - The location notes.
+         * @returns {string} HTML content for the popup.
+         */
+        function createPopupContent(docId, name, notes) {
+            // Sanitize notes to prevent HTML injection
+            const safeNotes = notes.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            
+            // We need to attach the delete function to the window scope
+            // so the inline onclick attribute can find it.
+            window.deleteLocation = deleteLocation; 
+
+            return `
+                <div class="font-inter p-1">
+                    <strong class="text-lg">${name}</strong>
+                    <p class="my-1">${safeNotes || '<em>No notes added.</em>'}</p>
+                    <button 
+                        onclick="deleteLocation('${docId}')" 
+                        class="mt-2 w-full text-left px-3 py-1 text-sm text-red-700 bg-red-100 rounded-md hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-500">
+                        Delete
+                    </button>
+                </div>
+            `;
+        }
+
+        // --- Modal Functions ---
+
+        /**
+         * Shows the "Add Location" modal.
+         */
+        function showModal() {
+            // Defend against DOM elements not being ready
+            if (!modal || !locationNameInput || !locationNotesInput || !errorText) {
+                console.error("Modal elements not ready, cannot show modal.");
+                return;
+            }
+
+            // Clear previous form state
+            locationNameInput.value = '';
+            locationNotesInput.value = '';
+            errorText.textContent = '';
+            errorText.classList.add('hidden');
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            locationNameInput.focus(); // Focus the first input
+        }
+
+        /**
+         * Hides the "Add Location" modal.
+         */
+        function hideModal() {
+            // Defend against DOM elements not being ready
+            if (!modal || !locationNameInput || !locationNotesInput || !errorText) {
+                console.error("Modal elements not ready, cannot hide modal.");
+                return;
+            }
+            
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            
+            // Clear form state on hide
+            locationNameInput.value = '';
+            locationNotesInput.value = '';
+            errorText.textContent = '';
+            errorText.classList.add('hidden');
+            currentLatLng = null; // Clear the stored coordinates
+        }
+
+        // --- Event Listeners ---
+        
+        // Attach modal listeners on script load
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- FIX: Assign global DOM element variables now that DOM is ready ---
+            modal = document.getElementById('locationModal');
+            locationNameInput = document.getElementById('locationName');
+            locationNotesInput = document.getElementById('locationNotes');
+            errorText = document.getElementById('errorText');
+            // --- END FIX ---
+            
+            // --- 復活: categoryFilterContainer assignment ---
+            categoryFilterContainer = document.getElementById('category-filter');
+            // --- END 復活 ---
+
+            const closeModalBtn = document.getElementById('closeModalBtn');
+            const cancelModalBtn = document.getElementById('cancelModalBtn');
+            const addLocationBtn = document.getElementById('addLocationBtn');
+
+            if(modal) {
+                // Close on 'X' button
+                closeModalBtn.addEventListener('click', hideModal);
+                // Close on 'Cancel' button
+                cancelModalBtn.addEventListener('click', hideModal);
+                // Save on 'Add Location' button
+                addLocationBtn.addEventListener('click', addLocation);
+
+                // Close on clicking outside the modal content
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        hideModal();
+                    }
+                });
+            } else {
+                console.error("Modal element not found on DOMContentLoaded.");
+            }
+            
+            // --- 復活: categoryFilterContainer check ---
+            if (!categoryFilterContainer) {
+                console.error("Category filter container #category-filter not found.");
+            }
+            // --- END 復活 ---
+        });
+
+        // Expose functions to global scope if needed for inline handlers
+        // (createPopupContent already exposes deleteLocation)
+
+    </script>
+    
+
+</head>
+<body class="font-inter bg-gray-100 m-0 p-0 flex flex-col h-screen">
+    
+    <!-- Header -->
+    <header class="bg-white shadow-md h-16 flex items-center px-4 sm:px-6 z-10 flex-shrink-0">
+        <h1 class="text-xl sm:text-2xl font-bold text-gray-800">My Travel Map</h1>
+    </header>
+
+    <!-- 復活: Category Filter Bar -->
+    <div id="category-filter" 
+         class="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 sm:px-6 py-3 bg-gray-50 border-b border-gray-200 z-10 flex-shrink-0">
+        <!-- (カテゴリフィルターのチェックボックスはここに動的に追加されます) -->
+        <span class="text-sm font-medium text-gray-500">Loading filters...</span>
+    </div>
+
+    <!-- Map Container -->
+    <!-- MODIFIED: Use flex-grow to fill remaining space -->
+    <div id="map" class="w-full flex-grow" 
+         aria-label="Interactive map to add travel locations">
+         <!-- Map will be initialized here -->
+    </div>
+    
+    <!-- Add Location Modal -->
+    <div id="locationModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 z-50 justify-center items-center p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 m-4">
+            <!-- Modal Header -->
+            <div class="flex justify-between items-center pb-3 border-b">
+                <h3 class="text-2xl font-semibold text-gray-900">Add New Location</h3>
+                <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600" aria-label="Close modal">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <!-- Modal Body -->
+            <div class="mt-4 space-y-4">
+                <div>
+                    <label for="locationName" class="block text-sm font-medium text-gray-700 mb-1">Location Name</label>
+                    <input type="text" id="locationName" name="locationName" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           placeholder="e.g., Eiffel Tower">
+                </div>
+                <div>
+                    <label for="locationNotes" class="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
+                    <textarea id="locationNotes" name="locationNotes" rows="3"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              placeholder="e.g., Visited in Summer 2023..."></textarea>
+                </div>
+                
+                <!-- Error Message -->
+                <p id="errorText" class="text-sm text-red-600 hidden"></p>
+            </div>
+            
+            <!-- Modal Footer -->
+            <div class="mt-6 flex justify-end space-x-3 border-t pt-4">
+                <button id="cancelModalBtn" 
+                        class="px-4 py-2 bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400">
+                    Cancel
+                </button>
+                <button id="addLocationBtn" 
+                        class="px-4 py-2 bg-blue-600 border border-transparent rounded-md text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Add Location
+                </button>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

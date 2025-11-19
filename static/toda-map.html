@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>戸田市 公園設立年マップ (全件対応版)</title>
+
+    <!-- Leaflet CSS -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <!-- Leaflet JS -->
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+    <!-- PapaParse (CSV Parser) -->
+    <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Noto Sans JP', sans-serif;
+      }
+      #map {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 100%;
+      }
+
+      /* Custom Slider Styling */
+      input[type='range'] {
+        -webkit-appearance: none;
+        width: 100%;
+        background: transparent;
+      }
+      input[type='range']::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        height: 20px;
+        width: 20px;
+        border-radius: 50%;
+        background: #3b82f6;
+        cursor: pointer;
+        margin-top: -8px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        border: 2px solid white;
+      }
+      input[type='range']::-webkit-slider-runnable-track {
+        width: 100%;
+        height: 6px;
+        cursor: pointer;
+        background: #cbd5e1;
+        border-radius: 3px;
+      }
+
+      /* Popup Styling */
+      .leaflet-popup-content-wrapper {
+        border-radius: 8px;
+        padding: 0;
+        overflow: hidden;
+      }
+      .leaflet-popup-content {
+        margin: 0;
+        width: 280px !important;
+      }
+
+      /* Animation classes */
+      .fade-in {
+        animation: fadeIn 0.5s ease-in;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+
+    <!-- Control Panel -->
+    <div
+      class="absolute top-4 left-4 bg-white/95 backdrop-blur p-4 rounded-lg shadow-xl max-w-xs z-[1000] border border-gray-200"
+    >
+      <h1 class="text-lg font-bold text-gray-800 mb-1">戸田市 公園マップ</h1>
+      <div class="text-xs text-gray-500 mb-3">設立年の推移 (Leaflet版)</div>
+
+      <!-- Map Switcher -->
+      <div class="flex space-x-2 bg-gray-100 p-1 rounded mb-4">
+        <button
+          id="btn-osm"
+          class="flex-1 text-xs py-1.5 px-2 rounded bg-white shadow text-blue-600 font-bold transition"
+        >
+          OSM
+        </button>
+        <button
+          id="btn-gsi"
+          class="flex-1 text-xs py-1.5 px-2 rounded text-gray-500 hover:bg-white hover:shadow transition"
+        >
+          地理院地図
+        </button>
+      </div>
+
+      <!-- Stats -->
+      <div class="flex gap-3 text-center">
+        <div class="flex-1 bg-blue-50 rounded p-2 border border-blue-100">
+          <div class="text-[10px] text-blue-400 font-bold tracking-wider">
+            PARKS
+          </div>
+          <div id="park-count" class="text-xl font-bold text-blue-600">0</div>
+        </div>
+        <div class="flex-1 bg-green-50 rounded p-2 border border-green-100">
+          <div class="text-[10px] text-green-500 font-bold tracking-wider">
+            YEAR
+          </div>
+          <div
+            id="current-year-display"
+            class="text-xl font-bold text-green-600"
+          >
+            ----
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Timeline Control -->
+    <div
+      class="absolute bottom-8 left-4 right-4 md:left-1/2 md:transform md:-translate-x-1/2 md:w-2/3 lg:w-1/2 bg-white/95 backdrop-blur p-4 rounded-xl shadow-2xl z-[1000] border border-gray-200"
+    >
+      <div class="flex items-center space-x-4">
+        <button
+          id="play-btn"
+          class="bg-blue-600 hover:bg-blue-700 text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg transition transform hover:scale-105 focus:outline-none shrink-0"
+        >
+          <svg
+            id="icon-play"
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-6 w-6 ml-1"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+            />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+          <svg
+            id="icon-pause"
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-6 w-6 hidden"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+        </button>
+
+        <div class="flex-1">
+          <div
+            class="flex justify-between text-xs font-bold text-gray-400 mb-2"
+          >
+            <span id="min-year">1950</span>
+            <span id="max-year">2025</span>
+          </div>
+          <input
+            type="range"
+            id="year-slider"
+            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+          />
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ============================================================
+      // 1. CSVデータ定義 (ここにCSVの中身を貼り付けてください)
+      // ============================================================
+      const csvRaw = `識別情報,団体コード,種別,団体名,概要,name,address,通称,latitude,longitude,ホームページ,施設_電話番号,開始時間,終了時間,自由記述欄,日時備考,established,img1,img2,img3,icon
+1,11224,公園,埼玉県戸田市,,彩湖道満グリーンパーク,埼玉県戸田市重瀬７４５他,,35.8224398,139.6313374,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=1,,,,,,,,,,img/icon/Park.png
+2,11224,公園,埼玉県戸田市,,喜沢南公園,埼玉県戸田市喜沢南1丁目3番地,,35.806581,139.695465,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=2,,,,平成９年に設置されました。,,1997,,,,img/icon/Park.png
+3,11224,公園,埼玉県戸田市,,戸田公園,埼玉県戸田市荒川堤外,,35.8031329,139.6574438,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=3,,,,市街地においては、運動施設等がないことから、堤外地利用し、整備を図る。,,,img/OldPic/東京オリンピック（ボートコース聖火台）・文字.jpg,img/NewPic/IMG_20181124_104734.jpg,,img/icon/Park.png
+4,11224,公園,埼玉県戸田市,,後谷公園,埼玉県戸田市 	上戸田4丁目8番地,,35.816893,139.67639,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=4,,,,当該地は、その昔武蔵野平野に属し、当時の面影を観ることができない現在、武蔵野平野を偲ばされる景観を目的とした公園とした。,,,,,,img/icon/Park.png
+5,11224,公園,埼玉県戸田市,,新田公園,埼玉県戸田市 	美女木3丁目1番地,,35.827047,139.644482,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=5,,,,昭和47年、区画整理により設置されました。,,1972,,,,img/icon/Park.png
+6,11224,公園,埼玉県戸田市,,惣右衛門公園,埼玉県戸田市笹目1丁目38番地,,35.818973,139.652393,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=6,,,,昭和46年、区画整理により設置されました。,,1971,,,,img/icon/Park.png
+7,11224,公園,埼玉県戸田市,,笹目公園,埼玉県戸田市笹目7丁目1番地,,35.81228,139.64285,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=7,,,,昭和48年、区画整理により設置されました。,,1973,,,,img/icon/Park.png
+8,11224,公園,埼玉県戸田市,,北部公園,埼玉県戸田市 	笹目北町9番地,,35.824523,139.655644,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=8,,,,昭和51年、区画整理により設置されました。,,1976,,,,img/icon/Park.png
+9,11224,公園,埼玉県戸田市,,上町第一公園,埼玉県戸田市 	下戸田2丁目10番地,,35.813773,139.683581,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=9,,,,昭和４１年、区画整理により設置された。,,1966,,,,img/icon/Park.png
+10,11224,公園,埼玉県戸田市,,上町第二公園,埼玉県戸田市 	下戸田2丁目19番地,,35.816274,139.683274,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=10,,,,昭和42年、区画整理により整理された。,,1967,,,,img/icon/Park.png
+11,11224,公園,埼玉県戸田市,,元蕨第一公園,埼玉県戸田市 	上戸田1丁目5番地,,35.817056,139.680392,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=11,,,,昭和43年区画整理により設置され、昭和53年に整備された。,,1968,,,,img/icon/Park.png
+12,11224,公園,埼玉県戸田市,,元蕨第二公園,埼玉県戸田市上戸田2丁目11番地,,35.814813,139.681097,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=12,,,,昭和42年に区画整理により設置された。,,1967,,,,img/icon/Park.png
+13,11224,公園,埼玉県戸田市,,元蕨第三公園,埼玉県戸田市上戸田2丁目9番地,,35.8137502,139.6813459,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=13,,,,昭和43年に区画整理により設置された。本公園は市福祉センターの東側に位置している。,,1968,,,,img/icon/Park.png
+14,11224,公園,埼玉県戸田市,,東町公園,埼玉県戸田市地 	上戸田2丁目41番地,,35.813423,139.677938,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=14,,,,昭和42年に区画整理により設置された。本公園は戸田第一小学校の東側に位置している。,,1967,,,,img/icon/Park.png
+15,11224,公園,埼玉県戸田市,,鍛冶谷町公園,埼玉県戸田市 	上戸田3丁目18番地,,35.8136,139.67482,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=15,,,,昭和43年に区画整理により設置された。本公園は住宅地域で氷川大明神の西側に位置している。,,1968,,,,img/icon/Park.png
+16,11224,公園,埼玉県戸田市,,新田口公園,埼玉県戸田市上戸田5丁目28番地,,35.812383,139.671315,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=16,,,,昭和42年に区画整理により設置された。,,1967,,,,img/icon/Park.png
+17,11224,公園,埼玉県戸田市,,立野際公園,埼玉県戸田市 	喜沢1丁目49番地,,35.810969,139.69758,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=17,,,,本公園は喜沢小学校の東側に位置し、その周辺には住宅が密集しており緑も少ない状況でした。又この地域には都市公園が少なく設置が望まれ４５年度に整備されました。,,,,,,img/icon/Park.png
+18,11224,公園,埼玉県戸田市,,番匠免公園,埼玉県戸田市美女木8丁目6番地,,35.828846,139.635128,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=18,,,,昭和49年、区画整理により設置されました。,,1974,,,,img/icon/Park.png
+19,11224,公園,埼玉県戸田市,,重瀬公園,埼玉県戸田市美女木1丁目22番地,,35.82924,139.63885,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=19,,,,昭和46年、区画整理により設置されました。,,1971,,,,img/icon/Park.png
+20,11224,公園,埼玉県戸田市,,美女木公園,埼玉県戸田市 	美女木2丁目20番地,,35.82686,139.640066,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=20,,,,昭和45年、区画整理により設置されました。妙巌寺の東側に位置しています。,,1970,,,,img/icon/Park.png
+21,11224,公園,埼玉県戸田市,,藪雨公園,埼玉県戸田市美女木3丁目12番地,,35.824909,139.642688,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=21,,,,昭和45年、区画整理により設置されました。,,1970,,,,img/icon/Park.png
+22,11224,公園,埼玉県戸田市,,堀ノ内公園,埼玉県戸田市 	美女木7丁目6番地,,35.82451,139.63849,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=22,,,,昭和45年、区画整理により設置されました。徳祥寺の南側に位置しています。,,1970,,,,img/icon/Park.png
+23,11224,公園,埼玉県戸田市,,修行目公園,埼玉県戸田市美女木6丁目4番地,,35.822315,139.639498,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=23,,,,昭和47年、区画整理により設置されました。この地域は、新大宮バイパスと外環状道路と交通量の多い道路に囲まれています。,,1972,,,,img/icon/Park.png
+24,11224,公園,埼玉県戸田市,,砂場公園,埼玉県戸田市美女木4丁目14番地,,35.82225,139.64391,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=24,,,,昭和45年、区画整理により設置されました。この地域は、新大宮バイパスと外環状道路に囲まれています。,,1970,,,,img/icon/Park.png
+25,11224,公園,埼玉県戸田市,,美笹公園,埼玉県戸田市美女木5丁目5番地,,35.821018,139.641676,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=25,,,,昭和45年、区画整理により設置されました。戸田市美笹支所の西側に位置しています。,,1970,,,,img/icon/Park.png
+26,11224,公園,埼玉県戸田市,,柳坪公園,埼玉県戸田市笹目4丁目22番地,,35.821,139.64612,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=26,,,,昭和47年、区画整理により設置しました。平成9年に園全体の施設整備を行う。,,1972,,,,img/icon/Park.png
+27,11224,公園,埼玉県戸田市,,天王公園,埼玉県戸田市笹目5丁目19番地,,35.817314,139.64258,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=27,,,,昭和46年、区画整理により設置しました。,,1973,,,,img/icon/Park.png
+28,11224,公園,埼玉県戸田市,,山宮公園,埼玉県戸田市笹目4丁目29番地,,35.818762,139.647747,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=28,,,,昭和46年、区画整理により設置されました。昭和60年度全面的公園改修工事,,1973,,,,img/icon/Park.png
+29,11224,公園,埼玉県戸田市,,谷口公園,埼玉県戸田市笹目1丁目20番地,,35.819686,139.655767,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=29,,,,昭和45年、区画整理により設置しました。,,1970,,,,img/icon/Park.png
+30,11224,公園,埼玉県戸田市,,根木橋公園,埼玉県戸田市笹目2丁目22番地,,35.815432,139.653835,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=30,,,,昭和46年、区画整理により設置しました。,,1971,,,,img/icon/Park.png
+31,11224,公園,埼玉県戸田市,,圃中公園,埼玉県戸田市 	笹目3丁目13番地,,35.81547,139.64993,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=31,,,,昭和45年に区画整理により設置された。,,1970,,,,img/icon/Park.png
+32,11224,公園,埼玉県戸田市,,野竹公園,埼玉県戸田市笹目6丁目4番地,,35.814766,139.646843,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=32,,,,昭和45年、区画整理により設置されました。,,1970,,,,img/icon/Park.png
+33,11224,公園,埼玉県戸田市,,下町公園,埼玉県戸田市 	笹目6丁目26番地,,35.810396,139.647318,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=33,,,,昭和45年、区画整理により設置しました。,,1970,,,,img/icon/Park.png
+34,11224,公園,埼玉県戸田市,,夏浜公園,埼玉県戸田市 	笹目7丁目9番地,,35.809052,139.643347,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=34,,,,昭和47年、区画整理により設置されました。,,1972,,,,img/icon/Park.png
+35,11224,公園,埼玉県戸田市,,早瀬公園,埼玉県戸田市 	笹目8丁目5番地,,35.80654,139.64613,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=35,,,,昭和45年、区画整理により設置されました。,,1970,,,,img/icon/Park.png
+36,11224,公園,埼玉県戸田市,,後第一公園,埼玉県戸田市喜沢1丁目29番地,,35.81366,139.69469,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=36,,,,この地域は住宅が密集している状態なので、緑が少ないためにこの公園は設置されました。,,,,,,img/icon/Park.png
+37,11224,公園,埼玉県戸田市,,後第二公園,埼玉県戸田市 	喜沢1丁目8番地,,35.8148,139.69788,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=37,,,,昭和３９年に区画整理により設置された。,,1964,,,,img/icon/Park.png
+38,11224,公園,埼玉県戸田市,,氷川公園,埼玉県戸田市中町1丁目28番地,,35.811682,139.690665,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=38,,,,昭和39年、区画整理により設置された。,,1964,,,,img/icon/Park.png
+39,11224,公園,埼玉県戸田市,,喜沢第一公園,埼玉県戸田市 	喜沢2丁目24番地,,35.810326,139.693486,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=39,,,,区画整理により昭和３９年に設置されました。,,1964,,,,img/icon/Park.png
+40,11224,公園,埼玉県戸田市,,喜沢第二公園,埼玉県戸田市 	喜沢2丁目17番地,,35.8085,139.6971,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=40,,,,昭和３９年区画整理により設置しました。,,1964,,,,img/icon/Park.png
+41,11224,公園,埼玉県戸田市,,外仲田公園,埼玉県戸田市 	美女木2丁目31番地,,35.8283326,139.6463214,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=41,,,,昭和54年、区画整理により設置されました。美女木小学校の北側に位置しています。,,1979,,,,img/icon/Park.png
+42,11224,公園,埼玉県戸田市,,山宮北公園,埼玉県戸田市 	笹目4丁目44番地,,35.82139,139.65213,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=42,,,,昭和54年、区画整理により設置されました。笹目中学校の南側に位置しています。,,1979,,,,img/icon/Park.png
+43,11224,公園,埼玉県戸田市,,谷口北公園,埼玉県戸田市笹目北町4番地,,35.821602,139.658511,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=43,,,,昭和54年、区画整理により設置されました。笹目川の西側に位置しています。,,1979,,,,img/icon/Park.png
+44,11224,公園,埼玉県戸田市,,笹目南公園,埼玉県戸田市笹目南町16番地,,35.809952,139.652363,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=44,,,,,,,,,,img/icon/Park.png
+45,11224,公園,埼玉県戸田市,,馬場公園,埼玉県戸田市 	新曽南2丁目7番地,,35.809917,139.664599,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=45,,,,本公園は、新曽小学校の東側に位置し、その周辺には、住宅が密集しており、緑も少ない状況でした。またこの地域には都市公園がなく、設置が望まれ、50年度に整備されました。,,1975,,,,img/icon/Park.png
+46,11224,公園,埼玉県戸田市,,川岸公園,埼玉県戸田市川岸2丁目6番地,,35.803876,139.686188,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=46,,,,国道１７号線より東に１５０米、一級河川菖蒲川沿いに位置し、旧法で土地区画整理事業が完了した地区に設置,,,,,,img/icon/Park.png
+47,11224,公園,埼玉県戸田市,,下前公園,埼玉県戸田市 	下前2丁目10番地,,35.80802,139.68433,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=47,,,,この地区は旧法の土地区画整理事業のため公園施設がない状況のため、戸田橋から北へ約８００m、１７号国道から１００mの位置に公園を設置した。,,,,,,img/icon/Park.png
+48,11224,公園,埼玉県戸田市,,下戸田第一公園,埼玉県戸田市 	下戸田1丁目18番地,,35.813154,139.683888,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=48,,,,昭和５３年に区画整理により設置した。,,1978,,,,img/icon/Park.png
+49,11224,公園,埼玉県戸田市,,下戸田第二公園,埼玉県戸田市 	下戸田1丁目15番地,,35.813165,139.68605,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=49,,,,昭和５３年に区画整理により設置された。,,1978,,,,img/icon/Park.png
+50,11224,公園,埼玉県戸田市,,後谷第二公園,埼玉県戸田市 	上戸田4丁目2番地,,35.820118,139.675409,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=50,,,,昭和53年に区画整理により設置された。,,1978,,,,img/icon/Park.png
+51,11224,公園,埼玉県戸田市,,荒井前公園,埼玉県戸田市下戸田2丁目番地,,35.817781,139.685038,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=51,,,,昭和５３年区画整理により設置された。,,1978,,,,img/icon/Park.png
+52,11224,公園,埼玉県戸田市,,後谷第一公園,埼玉県戸田市 	上戸田1丁目21番地,,35.819358,139.67892,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=52,,,,本公園は市役所の北側に位置し、昭和53年に区画整理により設置された。,,1978,,,,img/icon/Park.png
+53,11224,公園,埼玉県戸田市,,中町公園,埼玉県戸田市中町1丁目11番地,,35.813306,139.691907,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=53,,,,昭和５３年に区画整理により設置した。,,1978,,,,img/icon/Park.png
+54,11224,公園,埼玉県戸田市,,早瀬東公園,埼玉県戸田市早瀬1丁目20番地,,35.804133,139.650569,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=54,,,,当該地域は、埼京線戸田公園駅から西へ約2.5Km及び新大宮バイパスから東へ約0.2Kmにあって、市西部に位置し昭和30年度までに戸田土地区画整理事業(組合施行)により整備された地域であります。,,1955,,,,img/icon/Park.png
+55,11224,公園,埼玉県戸田市,,笹目南さくら公園,埼玉県戸田市笹目南町18番地,,35.812131,139.653822,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=55,,,,当該地域は、埼京線戸田公園駅から西へ約2.2Km及び新大宮バイパスから東へ約0.4Kmにあって、市西部に位置し、昭和30年度までに戸田市土地区画整理事業により整備された地域であります。,,1955,,,,img/icon/Park.png
+56,11224,公園,埼玉県戸田市,,けやき公園,埼玉県戸田市 	氷川町1丁目12番地,,35.808924,139.659983,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=56,,,,平成9年に設置した。本公園は氷川町1丁目児童遊園地（S46年設置）と西側隣接の用地を買収し一体化した都市公園として整備されました。,,1997,,,,img/icon/Park.png
+57,11224,公園,埼玉県戸田市,,本村公園,埼玉県戸田市 	本町3丁目12番地,,35.810338,139.67041,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=57,,,,平成9年に設置されました。本公園は中央通り二枚橋の南東に位置し、住宅が多く近年マンション等の建設がすすみ人口の増加があるところです。,,1997,,,,img/icon/Park.png
+58,11224,公園,埼玉県戸田市,,下戸田１丁目児童公園,埼玉県戸田市 	下戸田1丁目5番地,,35.81256,139.687277,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=58,,,,本公園は戸田東小学校の南側に位置している。,,,,,,img/icon/Park.png
+59,11224,公園,埼玉県戸田市,,上前谷遊園地,埼玉県戸田市氷川町2丁目8番地,,35.809529,139.656616,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=59,,,,仮称　サーパス戸田新築の提供公園　寄贈者（株）穴吹工務店,,,,,,img/icon/Park.png
+60,11224,公園,埼玉県戸田市,,喜沢南児童遊園地,埼玉県戸田市喜沢南1丁目4番地,,35.8046198,139.6949265,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=60,,,,都市計画法第４０条第２項に基づき本市に帰属した。,,,,,,img/icon/Park.png
+61,11224,公園,埼玉県戸田市,,本町５丁目児童遊園地,埼玉県戸田市 	本町5丁目13番地,,35.806002,139.677972,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=61,,,,提供公園　群峰工業（株）,,,,,,img/icon/Park.png
+62,11224,公園,埼玉県戸田市,,新曽南４丁目児童遊園地,埼玉県戸田市 	新曽南4丁目5番地,,35.807773,139.661719,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=62,,,,昭和46年に整備された。この地域は住宅が密集しており、緑も少ない状態であった。,,1971,,,,img/icon/Park.png
+63,11224,公園,埼玉県戸田市,,後谷児童遊園地,埼玉県戸田市上戸田4丁目11番地,,35.816751,139.675549,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=63,,,,本公園は市役所の西側に位置し、昭和47年に区画整理により設置された。,,1972,,,,img/icon/Park.png
+64,11224,公園,埼玉県戸田市,,根木橋児童遊園地,埼玉県戸田市 	笹目南町21番地,,35.812282,139.652997,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=64,,,,昭和46年に整備された。,,1971,,,,img/icon/Park.png
+65,11224,公園,埼玉県戸田市,,喜沢２丁目児童公園,埼玉県戸田市 	喜沢2丁目6番地,,35.810939,139.694453,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=65,,,,昭和６２年に整備された。,,1987,,,,img/icon/Park.png
+66,11224,公園,埼玉県戸田市,,曲尺手遊園地,埼玉県戸田市南町8番地,,35.806358,139.672216,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=66,,,,,,,,,,img/icon/Park.png
+67,11224,公園,埼玉県戸田市,,稲荷木公園,埼玉県戸田市上戸田字稲荷木111番地,,35.820527,139.674381,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=67,,,,開発指導要綱摘要、三交不動産（株）より寄贈,,,,,,img/icon/Park.png
+68,11224,公園,埼玉県戸田市,,新曽柳原児童遊園地,埼玉県戸田市 	新曽字柳原979番地,,35.812967,139.669382,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=68,,,,本公園は柳原市営住宅の北側に位置し、昭和47年に設置され、平成9年に再整備をした。,,1972,,,,img/icon/Park.png
+69,11224,公園,埼玉県戸田市,,菖蒲遊園地,埼玉県戸田市新曽南3丁目2番地,,35.80613,139.67008,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=69,,,,宅地開発等指導要綱による寄付　寄贈者（株）西洋環境開発,,,,,,img/icon/Park.png
+70,11224,公園,埼玉県戸田市,,立野際小公園,埼玉県戸田市喜沢2丁目9番地,,35.809655,139.697145,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=70,,,,昭和５５年に整備された。,,1980,,,,img/icon/Park.png
+71,11224,公園,埼玉県戸田市,,氷川町児童遊園地,埼玉県戸田市氷川町1丁目10番地,,35.809648,139.658203,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=71,,,,昭和54年に設置した。,,1979,,,,img/icon/Park.png
+72,11224,公園,埼玉県戸田市,,本町１丁目児童遊園地,埼玉県戸田市本町1丁目18番地,,35.810619,139.679796,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=72,,,,昭和46年に設置された。本公園は戸田市子供の国の北側に位置している。,,1971,,,,img/icon/Park.png
+73,11224,公園,埼玉県戸田市,,氷川町１丁目児童公園,埼玉県戸田市氷川町1丁目5番地,,35.809522,139.661636,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=73,,,,本公園は新曽小学校の西側に位置し、この地域は住宅も多くあり、緑も少ない状況でした。,,,,,,img/icon/Park.png
+74,11224,公園,埼玉県戸田市,,南町児童遊園地,埼玉県戸田市南町4番地,,35.803673,139.674455,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=74,,,,,,,,,,img/icon/Park.png
+75,11224,公園,埼玉県戸田市,,馬場ふれあい公園,埼玉県戸田市 	新曽南2丁目2番地,,35.810011,139.666837,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=75,,,,本公園は、新曽小学校の東側に位置し、その周囲は住宅が密集しており緑の少ない状況でした。,,,,,,img/icon/Park.png
+76,11224,公園,埼玉県戸田市,,本町４丁目児童遊園地,埼玉県戸田市本町4丁目7番地,,35.8076766,139.6813098,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=76,,,,昭和46年に設置された。本公園は戸田南小学校の北側に位置している。,,1971,,,,img/icon/Park.png
+77,11224,公園,埼玉県戸田市,,中町２丁目児童遊園地,埼玉県戸田市 	中町2丁目9番地,,35.8086874,139.6902494,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=77,,,,昭和４６年に設置された。,,1971,,,,img/icon/Park.png
+78,11224,公園,埼玉県戸田市,,南町児童公園,埼玉県戸田市 	南町7番地28,,35.805664,139.672725,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=78,,,,本公園は戸田中学校の西側に位置し、その周辺には住宅が密集しており、緑も少ない状況でした。,,,,,,img/icon/Park.png
+79,11224,公園,埼玉県戸田市,,本町２丁目児童遊園地,埼玉県戸田市本町2丁目15番地,,35.808132,139.674705,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=79,,,,昭和47年に整備された。本公園は、多福院の東側に位置している。この地域は住宅が密集しており、遊び場が少ない状態だったので設置された。,,1972,,,,img/icon/Park.png
+80,11224,公園,埼玉県戸田市,,川岸３丁目遊園地,埼玉県戸田市 	川岸3丁目7番地,,35.803109,139.68176,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=80,,,,昭和５２年に整備された。,,1977,,,,img/icon/Park.png
+81,11224,公園,埼玉県戸田市,,新曽南１丁目児童遊園地,埼玉県戸田市 	新曽南1丁目10,,35.809999,139.668418,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=81,,,,昭和47年に整備された。この地域は住宅が密集しており、緑が少ない状態なので、緑のオアシスとして、よく利用されている。,,1972,,,,img/icon/Park.png
+82,11224,公園,埼玉県戸田市,,下前１丁目遊園地,埼玉県戸田市 	下前1丁目14番地,,35.810431,139.68321,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=82,,,,戸田市スカイマンションの提供公園,,,,,,img/icon/Park.png
+83,11224,公園,埼玉県戸田市,,戸田公園駅西口緑地,埼玉県戸田市本町4丁目11番地,,35.8079,139.6775246,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=83,,,,この緑地はJR戸田公園駅に隣接し、環境空間を戸田華かいどう21の整備方針に即して、本整備された最初の緑地である。,,,,,,img/icon/Park.png
+84,11224,公園,埼玉県戸田市,,緩衝緑地,埼玉県戸田市笹目北町3番地,,35.8078187,139.6580739,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=84,,,,昭和54年、北部第一土地区画整理事業の施行により設置されました。,,,,,,img/icon/Park.png
+85,11224,公園,埼玉県戸田市,,新曽沖内児童遊園地,埼玉県戸田市新曽字小玉261番地,,35.814468,139.6704514,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=85,,,,昭和33年に設置され、昭和53年に整備された。,,1978,,,,img/icon/Park.png
+86,11224,公園,埼玉県戸田市,,氷川町２丁目児童遊園地,埼玉県戸田市氷川町2丁目11番地,,35.8107807,139.6576841,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=86,,,,昭和42年に設置された。,,1967,,,,img/icon/Park.png
+87,11224,公園,埼玉県戸田市,,喜沢南１丁目児童遊園地,埼玉県戸田市喜沢南1丁目7番地,,35.806932,139.6935128,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=87,,,,昭和４２年に設置される。,,1967,,,,img/icon/Park.png
+88,11224,公園,埼玉県戸田市,,下前児童遊園地,埼玉県戸田市下前2丁目8番地,,35.807392,139.6851741,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=88,,,,昭和４４年に設置された。,,1969,,,,img/icon/Park.png
+89,11224,公園,埼玉県戸田市,,新曽北町児童遊園地,埼玉県戸田市 新曽字芦原2342番地,,35.8147838,139.6591216,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=89,,,,本公園は新曽北町会館に位置し昭和46年に設置された。平成9年度に会館立替後施設整備を行った。,,1971,,,,img/icon/Park.png
+90,11224,公園,埼玉県戸田市,,早瀬児童遊園地,埼玉県戸田市早瀬1丁目7番地,,35.8032743,139.6513121,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=90,,,,昭和46年に整備された。,,1971,,,,img/icon/Park.png
+91,11224,公園,埼玉県戸田市,,喜沢２丁目児童遊園地（アリスの広場含む）,埼玉県戸田市喜沢2丁目20番地,,35.8095517,139.6952981,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=91,,,,昭和４６年に整備された。,,1971,,,,img/icon/Park.png
+92,11224,公園,埼玉県戸田市,,喜沢南２丁目児童遊園地,埼玉県戸田市喜沢南２丁目６,,35.8068746,139.6907088,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=92,,,,昭和４７年に整備された。,,1972,,,,img/icon/Park.png
+93,11224,公園,埼玉県戸田市,,本町3丁目児童遊園地,埼玉県戸田市本町3丁目11番地,,35.809327,139.670397,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=93,,,,昭和47年に整備された。本公園は、本村会館に位置している。この地域は住宅が密集し、緑が少ない状態であった,,1972,,,,img/icon/Park.png
+94,11224,公園,埼玉県戸田市,,川岸児童遊園地,埼玉県戸田市川岸2丁目6番地,,35.8042104,139.6844522,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=94,,,,昭和４６年に整備された。,,1971,,,,img/icon/Park.png
+95,11224,公園,埼玉県戸田市,,南根木橋児童遊園地,埼玉県戸田市笹目南町35番地,,35.8129048,139.6516815,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=95,,,,昭和51年に整備された。,,1976,,,,img/icon/Park.png
+96,11224,公園,埼玉県戸田市,,芦原ちびっこ広場,埼玉県戸田市新曽字稲荷1604番地1,,35.8263779,139.6628901,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=96,,,,昭和50年に整備された。本公園は美笹発電所の東南側に位置している。,,1975,,,,img/icon/Park.png
+97,11224,公園,埼玉県戸田市,,後谷団地児童遊園地,埼玉県戸田市戸田市上戸田３丁目２２,,35.8149314,139.6757295,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=97,,,,昭和54年に設置された。,,1979,,,,img/icon/Park.png
+98,11224,公園,埼玉県戸田市,,戸田橋下広場,埼玉県戸田市川岸3丁目4番地,,35.8019553,139.683898,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=98,,,,,,,,,,img/icon/Park.png
+99,11224,公園,埼玉県戸田市,,新曽南児童遊園地,埼玉県戸田市新曽南４丁目１,,35.8075641,139.6639705,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=99,,,,新曽下町公民館となり,,,,,,img/icon/Park.png
+100,11224,公園,埼玉県戸田市,,向田児童遊園地,埼玉県戸田市美女木字向田1117番地,,35.8305903,139.6478966,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=100,,,,,,,,,,img/icon/Park.png
+101,11224,公園,埼玉県戸田市,,上前児童遊園地,埼玉県戸田市本町５丁目３?２５,,35.8049259,139.6803327,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=101,,,,昭和31年に本公園は設置された。,,,,,,img/icon/Park.png
+102,11224,公園,埼玉県戸田市,,喜沢南児童遊園地,埼玉県戸田市喜沢南1丁目8番地,,35.8073213,139.6940564,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=102,,,,,,,,,,img/icon/Park.png
+103,11224,公園,埼玉県戸田市,,笹目夏浜児童遊園地,埼玉県戸田市笹目7丁目15番地,,35.8092236,139.6422649,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=103,,,,,,,,,,img/icon/Park.png
+104,11224,公園,埼玉県戸田市,,下笹目住宅緑地,埼玉県戸田市笹目8丁目1番地,,35.8094725,139.6462696,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=104,,,,,,,,,,img/icon/Park.png
+105,11224,公園,埼玉県戸田市,,下前稲荷広場,埼玉県戸田市下前2丁目6番地,,35.8069397,139.6860881,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=105,,,,,,,,,,img/icon/Park.png
+106,11224,公園,埼玉県戸田市,,笹目一丁目児童遊園地,埼玉県戸田市笹目1丁目14番地,,35.8175829,139.6570658,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=106,,,,,,,,,,img/icon/Park.png
+107,11224,公園,埼玉県戸田市,,下戸田ミニパーク,埼玉県戸田市下戸田2丁目12番地,,35.8123701,139.6832543,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=107,,,,平成９年に設置されました。,,1997,,,,img/icon/Park.png
+108,11224,公園,埼玉県戸田市,,川岸ミニパーク,埼玉県戸田市川岸1丁目10番地,,35.8023705,139.6855283,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=108,,,,平成９年に設置されました。,,1997,,,,img/icon/Park.png
+109,11224,公園,埼玉県戸田市,,上前公園,埼玉県戸田市本町5丁目10番地,,35.8053632,139.6774835,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=109,,,,,,,,,,img/icon/Park.png
+110,11224,公園,埼玉県戸田市,,みにばら広場,埼玉県戸田市南町1丁目21番,,35.806231,139.673992,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=110,,,,寄付,,,,,,img/icon/Park.png
+111,11224,公園,埼玉県戸田市,,川岸運動公園,埼玉県戸田市荒川堤外,,35.7988841,139.6995589,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=111,,,,,,,,,,img/icon/Park.png
+112,11224,公園,埼玉県戸田市,,笹目川親水公園,埼玉県戸田市氷川町3丁目14番地,,35.8074002,139.6544116,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=112,,,,,,,,,,img/icon/Park.png
+113,11224,公園,埼玉県戸田市,,戸田橋親水公園,埼玉県戸田市川岸3丁目７番７地先,,35.8026842,139.681882,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=113,,,,,,,,,,img/icon/Park.png
+114,11224,公園,埼玉県戸田市,,荒川親水公園,埼玉県戸田市戸田公園地先,,35.8014591,139.6582242,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=114,,,,本公園は、戸田競艇場の南荒川河川高水敷に位置し、建設省笹目川親水ピアモデル事業の一環として整備された。,,,,,,img/icon/Park.png
+115,11224,公園,埼玉県戸田市,,緑地公園,埼玉県戸田市新曽字稲荷1039番地,,35.8131696,139.6658137,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=115,,,,,,,,,,img/icon/Park.png
+116,11224,公園,埼玉県戸田市,,こぶし公園,埼玉県戸田市下前2丁目10番地,,35.8069287,139.6890668,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=116,,,,,,,,,,img/icon/Park.png
+117,11224,公園,埼玉県戸田市,,前谷公園,埼玉県戸田市上戸田1丁目23番地,,35.8208746,139.6772658,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=117,,,,,,,,,,img/icon/Park.png
+118,11224,公園,埼玉県戸田市,,戸田桜づつみ,埼玉県戸田市荒川堤防上,,35.8021831,139.6710195,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=118,,,,昭和６３年１２月２６日事業認定、平成元年１１月　植栽工事,,1989,,,,img/icon/Park.png
+119,11224,公園,埼玉県戸田市,,せせらぎ遊歩道,埼玉県戸田市美女木5丁目28番地,,35.8183321,139.6396386,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=119,,,,,,,,,,img/icon/Park.png
+120,11224,公園,埼玉県戸田市,,下町さくら東ひろば,埼玉県戸田市新曽南3丁目8番７号地先,,35.8065333,139.6677806,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=120,,,,,,,,,,img/icon/Park.png
+121,11224,公園,埼玉県戸田市,,下町さくら中央ひろば,埼玉県戸田市新曽南3丁目15番8号地先,,35.8066415,139.6663591,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=121,,,,,,,,,,img/icon/Park.png
+122,11224,公園,埼玉県戸田市,,下町さくら西ひろば,埼玉県戸田市新曽南4丁目1番11号地先,,35.8067979,139.6641251,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=122,,,,,,,,,,img/icon/Park.png
+123,11224,公園,埼玉県戸田市,,氷川町さくらひろば,埼玉県戸田市氷川町3丁目5番地,,35.8072764,139.6580905,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=123,,,,,,,,,,img/icon/Park.png
+124,11224,公園,埼玉県戸田市,,新曽新田公共広場,埼玉県戸田市新曽字稲荷1771番地,,35.8136189,139.6630476,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=124,,,,新田公民館敷地の一部を使用,,,,,,img/icon/Park.png
+125,11224,公園,埼玉県戸田市,,上戸田４丁目緑道,埼玉県戸田市上戸田4丁目2番地,,35.8195032,139.6771149,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=125,,,,,,,,,,img/icon/Park.png
+126,11224,公園,埼玉県戸田市,,野竹さくら広場,埼玉県戸田市笹目5丁目35番地,,35.8144568,139.6414516,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=126,,,,,,,,,,img/icon/Park.png
+127,11224,公園,埼玉県戸田市,,天王さくら広場,埼玉県戸田市笹目5丁目32番地,,35.8155859,139.6405465,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=127,,,,,,,,,,img/icon/Park.png
+128,11224,公園,埼玉県戸田市,,住民広場（新曽小玉）,埼玉県戸田市新曽字小玉84番地,,35.8174005,139.6716458,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=128,,,,,,,,,,img/icon/Park.png
+129,11224,公園,埼玉県戸田市,,住民広場（笹目７丁目）,埼玉県戸田市笹目7丁目20番地,,35.8065093,139.6435996,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=129,,,,,,,,,,img/icon/Park.png
+130,11224,公園,埼玉県戸田市,,下前公園ゲートボール場,埼玉県戸田市下前2丁目10番地備考,,35.8078187,139.6846101,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=130,,,,,,,,,,img/icon/Park.png
+131,11224,公園,埼玉県戸田市,,新曽小玉広場,埼玉県戸田市新曽字小玉145番地,,35.821781,139.6713767,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=131,,,,,,,,,,img/icon/Park.png
+132,11224,公園,埼玉県戸田市,,かじやさくら緑地,埼玉県戸田市上戸田3丁目10番地,,35.810915,139.6748583,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=132,,,,,,,,,,img/icon/Park.png
+133,11224,公園,埼玉県戸田市,,柳原広場,埼玉県戸田市新曽字柳原707番地,,35.8230074,139.668279,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=133,,,,,,,,,,img/icon/Park.png
+145,11224,公園,埼玉県戸田市,,第一号市民緑地,埼玉県戸田市笹目1丁目1番地,,35.8209689,139.6577152,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=145,,,,,,,,,,img/icon/Park.png
+146,11224,公園,埼玉県戸田市,,第2号市民緑地,埼玉県戸田市新曽字芦原1868番地,,35.8155655,139.661432,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=146,,,,,,,,,,img/icon/Park.png
+147,11224,公園,埼玉県戸田市,,3号緑地公園(戸田市管理),埼玉県戸田市新曽字芦原2467番地,,35.8139691,139.6575269,http://e-toda.kukanjoho.jp/EtodaPark/ParkAtt/ParkAttInfo.aspx?ID=147,,,,,,,,,,img/icon/Park.png
+150,11224,公園,埼玉県戸田市,,荒川水循環センター上部公園,埼玉県戸田市大字美女木５４３４−１,,35.8176989,139.6383325,https://www.city.toda.saitama.jp/soshiki/213/index-2.html,,,,,,,,,,img/icon/Park.png
+157,11224,公園,埼玉県戸田市,,新田ふれあい噴水公園,埼玉県戸田市新曽1758-3,,35.8155629,139.6629704,https://www.city.toda.saitama.jp/soshiki/272/matidukuri-shindfpark.html,,,,地域にお住まいの皆さんと共にワークショップなどで話し合ったことをもとに、整備を進めてきた「新田ふれあい噴水公園」が、2017年12月6日から利用できるようになりました。,,,,,,img/icon/Park.png`
+
+      // ============================================================
+      // 2. アプリケーションロジック
+      // ============================================================
+
+      // --- Leaflet マップ初期化 ---
+      const map = L.map('map', {
+        center: [35.815, 139.67], // 戸田市中心部
+        zoom: 13,
+        zoomControl: false,
+      })
+      L.control.zoom({ position: 'bottomright' }).addTo(map)
+
+      // タイルレイヤー
+      const osmLayer = L.tileLayer(
+        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+        {
+          attribution: '&copy; OpenStreetMap contributors',
+        }
+      ).addTo(map)
+
+      const gsiLayer = L.tileLayer(
+        'https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png',
+        {
+          attribution: '&copy; 国土地理院',
+        }
+      )
+
+      // --- 変数定義 ---
+      let parkGeoJSON = null // 全データのGeoJSON
+      let geoJsonLayer = null // 表示用レイヤー
+      let timerId = null
+      let isPlaying = false
+
+      // DOM要素
+      const elements = {
+        slider: document.getElementById('year-slider'),
+        minYear: document.getElementById('min-year'),
+        maxYear: document.getElementById('max-year'),
+        currentYear: document.getElementById('current-year-display'),
+        parkCount: document.getElementById('park-count'),
+        playBtn: document.getElementById('play-btn'),
+        iconPlay: document.getElementById('icon-play'),
+        iconPause: document.getElementById('icon-pause'),
+        btnOsm: document.getElementById('btn-osm'),
+        btnGsi: document.getElementById('btn-gsi'),
+      }
+
+      // --- CSV処理と初期化 ---
+      function initData() {
+        // PapaParseでCSVをJSON配列に変換
+        const result = Papa.parse(csvRaw, {
+          header: true,
+          skipEmptyLines: true,
+          dynamicTyping: false, // 文字列として扱う（あとで変換）
+        })
+
+        const features = []
+        const validYears = []
+
+        result.data.forEach((row) => {
+          // 必須項目のチェック
+          const lat = parseFloat(row.latitude)
+          const lng = parseFloat(row.longitude)
+
+          if (isNaN(lat) || isNaN(lng)) return
+
+          // 年の処理 (establishedカラム)
+          let year = parseInt(row.established)
+          if (isNaN(year)) year = 0 // 不明な場合は0
+          if (year > 0) validYears.push(year)
+
+          features.push({
+            type: 'Feature',
+            geometry: {
+              type: 'Point',
+              coordinates: [lng, lat],
+            },
+            properties: {
+              name: row.name || '名称不明',
+              address: row.address || '',
+              year: year,
+              url: row.ホームページ || row.url || '',
+            },
+          })
+        })
+
+        // 全データをGeoJSONとして保存
+        parkGeoJSON = {
+          type: 'FeatureCollection',
+          features: features,
+        }
+
+        // スライダーの範囲設定
+        // 最小年に「余裕」を持たせる処理
+        const dataMinYear =
+          validYears.length > 0 ? Math.min(...validYears) : 1960
+        const dataMaxYear = new Date().getFullYear()
+
+        // 最小値の10年前まで広げ、さらに10年単位で切り捨てる
+        // 例: 1964年 -> 1954 -> 1950年開始
+        let sliderMin = Math.floor((dataMinYear - 10) / 10) * 10
+        if (sliderMin < 1900) sliderMin = 1900 // 安全策
+
+        elements.slider.min = sliderMin
+        elements.slider.max = dataMaxYear
+        elements.slider.value = dataMaxYear // 最初は全表示
+
+        elements.minYear.textContent = sliderMin
+        elements.maxYear.textContent = dataMaxYear
+
+        // 初期描画
+        updateMap(parseInt(elements.slider.value))
+      }
+
+      // --- マップ更新ロジック ---
+      function updateMap(currentYear) {
+        elements.currentYear.textContent = currentYear
+
+        // フィルタリング
+        // 「設立年が現在年以下」または「設立年が不明(0)」のデータを抽出
+        const filteredFeatures = parkGeoJSON.features.filter((f) => {
+          const y = f.properties.year
+          return y <= currentYear || y === 0
+        })
+
+        elements.parkCount.textContent = filteredFeatures.length
+
+        // レイヤーの更新（全削除して再描画は重そうに見えるが、数千件レベルならLeafletで一瞬）
+        if (geoJsonLayer) {
+          map.removeLayer(geoJsonLayer)
+        }
+
+        geoJsonLayer = L.geoJSON(
+          { type: 'FeatureCollection', features: filteredFeatures },
+          {
+            pointToLayer: function (feature, latlng) {
+              const isNew = feature.properties.year === currentYear
+              // 設立年が不明なデータはグレー、それ以外は赤
+              // アニメーション演出: その年に設立されたものは少し大きく強調などの処理も可能
+
+              return L.circleMarker(latlng, {
+                radius: isNew ? 12 : 8, // その年のものは大きく
+                fillColor:
+                  feature.properties.year === 0 ? '#94a3b8' : '#ef4444',
+                color: '#fff',
+                weight: 2,
+                opacity: 1,
+                fillOpacity: feature.properties.year === 0 ? 0.6 : 0.8,
+              })
+            },
+            onEachFeature: function (feature, layer) {
+              const p = feature.properties
+              const yearStr = p.year > 0 ? `${p.year}年` : '不明'
+
+              const popupContent = `
+                        <div class="bg-white">
+                            <div class="bg-blue-600 text-white p-3 font-bold text-base">
+                                ${p.name}
+                            </div>
+                            <div class="p-4">
+                                <div class="text-sm text-gray-600 mb-2">
+                                    <span class="font-bold">📍 住所:</span><br>${
+                                      p.address
+                                    }
+                                </div>
+                                <div class="text-sm text-gray-600 mb-4">
+                                    <span class="font-bold">📅 設立:</span> ${yearStr}
+                                </div>
+                                ${
+                                  p.url
+                                    ? `
+                                    <a href="${p.url}" target="_blank" class="block w-full text-center bg-gray-100 hover:bg-blue-50 text-blue-600 border border-blue-200 py-2 rounded transition text-sm font-bold">
+                                        詳細を見る
+                                    </a>
+                                `
+                                    : ''
+                                }
+                            </div>
+                        </div>
+                    `
+              layer.bindPopup(popupContent)
+            },
+          }
+        ).addTo(map)
+      }
+
+      // --- アニメーション制御 ---
+      function togglePlay() {
+        if (isPlaying) {
+          stopAnimation()
+        } else {
+          startAnimation()
+        }
+      }
+
+      function startAnimation() {
+        // もしスライダーが最後なら最初に戻す
+        const max = parseInt(elements.slider.max)
+        const min = parseInt(elements.slider.min)
+        let current = parseInt(elements.slider.value)
+
+        if (current >= max) {
+          current = min
+          elements.slider.value = current
+        }
+
+        isPlaying = true
+        elements.iconPlay.classList.add('hidden')
+        elements.iconPause.classList.remove('hidden')
+        elements.playBtn.classList.add('bg-red-500', 'hover:bg-red-600')
+        elements.playBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700')
+
+        timerId = setInterval(() => {
+          current++
+          if (current > max) {
+            stopAnimation()
+          } else {
+            elements.slider.value = current
+            updateMap(current)
+          }
+        }, 100) // 0.1秒ごとに1年進む
+      }
+
+      function stopAnimation() {
+        clearInterval(timerId)
+        isPlaying = false
+        elements.iconPlay.classList.remove('hidden')
+        elements.iconPause.classList.add('hidden')
+        elements.playBtn.classList.remove('bg-red-500', 'hover:bg-red-600')
+        elements.playBtn.classList.add('bg-blue-600', 'hover:bg-blue-700')
+      }
+
+      // --- イベント設定 ---
+      elements.slider.addEventListener('input', (e) => {
+        if (isPlaying) stopAnimation()
+        updateMap(parseInt(e.target.value))
+      })
+
+      elements.playBtn.addEventListener('click', togglePlay)
+
+      elements.btnOsm.addEventListener('click', () => {
+        map.removeLayer(gsiLayer)
+        osmLayer.addTo(map)
+        updateButtonStyle(elements.btnOsm, elements.btnGsi)
+      })
+
+      elements.btnGsi.addEventListener('click', () => {
+        map.removeLayer(osmLayer)
+        gsiLayer.addTo(map)
+        updateButtonStyle(elements.btnGsi, elements.btnOsm)
+      })
+
+      function updateButtonStyle(activeBtn, inactiveBtn) {
+        activeBtn.classList.replace('text-gray-500', 'text-blue-600')
+        activeBtn.classList.add('bg-white', 'shadow')
+        inactiveBtn.classList.replace('text-blue-600', 'text-gray-500')
+        inactiveBtn.classList.remove('bg-white', 'shadow')
+      }
+
+      // アプリケーション開始
+      initData()
+    </script>
+  </body>
+</html>

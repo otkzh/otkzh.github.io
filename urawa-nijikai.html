@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UDC2025 シンポジウム二次会マップ</title>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+  <!-- Tailwind CSS for styling -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    #map {
+      height: 100%;
+      width: 100%;
+      z-index: 1;
+    }
+
+    /* Custom Marker Styles */
+    .custom-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+      border: 2px solid white;
+      transition: transform 0.2s;
+    }
+
+    .custom-icon:hover {
+      transform: scale(1.1);
+      z-index: 1000 !important;
+    }
+
+    /* Legend Control Styling Override */
+    .leaflet-control-layers {
+      border-radius: 8px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+      border: none !important;
+      padding: 8px !important;
+      font-family: 'Noto Sans JP', sans-serif;
+    }
+
+    .leaflet-popup-content-wrapper {
+      border-radius: 8px;
+      padding: 5px;
+    }
+
+    .leaflet-popup-content h3 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .category-badge {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <!-- Header Overlay -->
+  <div class="absolute top-4 left-14 right-4 z-[1000] pointer-events-none">
+    <div class="bg-white/90 backdrop-blur-sm p-3 rounded-lg shadow-lg inline-block pointer-events-auto max-w-full">
+      <h1 class="text-lg font-bold text-gray-800 m-0 leading-tight">UDC2025 シンポジウム二次会マップ</h1>
+      <p class="text-xs text-gray-500 mt-1 m-0">浦和駅周辺のおすすめスポット</p>
+    </div>
+  </div>
+
+  <div id="map"></div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <script>
+    // --- 1. KML Data (Embedded) ---
+    const kmlString = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>UDC2025シンポジウム二次会にどうぞ</name>
+    <Folder>
+      <name>ラーメン屋</name>
+      <Placemark><name>自家製麺 鶏そば 一瑳</name><Point><coordinates>139.6592641,35.8570558,0</coordinates></Point></Placemark>
+      <Placemark><name>平和軒</name><Point><coordinates>139.660659,35.8576527,0</coordinates></Point></Placemark>
+      <Placemark><name>浦和ラーメン王</name><Point><coordinates>139.65607,35.8603044,0</coordinates></Point></Placemark>
+      <Placemark><name>うさ担 浦和本店</name><Point><coordinates>139.6567429,35.8606735,0</coordinates></Point></Placemark>
+    </Folder>
+    <Folder>
+      <name>居酒屋</name>
+      <Placemark><name>釣宿酒場 マヅメ 浦和店</name><Point><coordinates>139.6575848,35.859056,0</coordinates></Point></Placemark>
+      <Placemark><name>鳥昇</name><Point><coordinates>139.6571422,35.8595833,0</coordinates></Point></Placemark>
+      <Placemark><name>わか大将</name><Point><coordinates>139.6580852,35.8592313,0</coordinates></Point></Placemark>
+      <Placemark><name>Nmc KITCHEN</name><Point><coordinates>139.6594379,35.8572202,0</coordinates></Point></Placemark>
+      <Placemark><name>モッツバー輪 浦和店</name><Point><coordinates>139.6560103,35.8604415,0</coordinates></Point></Placemark>
+      <Placemark><name>酒蔵 力 浦和本店</name><Point><coordinates>139.6545858,35.8599499,0</coordinates></Point></Placemark>
+      <Placemark><name>和浦酒場</name><Point><coordinates>139.6551134,35.8585243,0</coordinates></Point></Placemark>
+    </Folder>
+    <Folder>
+      <name>クラフトビール</name>
+      <Placemark><name>BEERNOVA URAWA</name><Point><coordinates>139.6586135,35.859914,0</coordinates></Point></Placemark>
+      <Placemark><name>U.B.P BREWERY</name><Point><coordinates>139.6553248,35.8572524,0</coordinates></Point></Placemark>
+    </Folder>
+    <Folder>
+      <name>カフェ</name>
+      <Placemark><name>恵比寿屋喫茶店</name><Point><coordinates>139.659455,35.8571432,0</coordinates></Point></Placemark>
+      <Placemark><name>YANAKA COFFEE アトレ浦和店</name><Point><coordinates>139.6577424,35.8583307,0</coordinates></Point></Placemark>
+    </Folder>
+    <Folder>
+      <name>お土産</name>
+      <Placemark><name>十万石 浦和コルソ店</name><Point><coordinates>139.6558051,35.8584565,0</coordinates></Point></Placemark>
+      <Placemark><name>菓匠花見 浦和伊勢丹店</name><Point><coordinates>139.6562096,35.8591272,0</coordinates></Point></Placemark>
+      <Placemark><name>菓房 はら山 浦和伊勢丹店</name><Point><coordinates>139.6561258,35.859163,0</coordinates></Point></Placemark>
+      <Placemark><name>彩果の宝石コルソ店</name><Point><coordinates>139.6555398,35.8584005,0</coordinates></Point></Placemark>
+    </Folder>
+  </Document>
+</kml>`;
+
+    // --- 2. Configuration: Categories & Colors ---
+    const categoriesConfig = {
+      "ラーメン屋": { color: "#ef4444", icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14h18"/><path d="M4 14v3c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-3"/><path d="M9.5 14c.8-2.5 2.2-5 4.5-5s3.7 2.5 4.5 5"/><path d="M9.5 2A17 17 0 0 0 5 14"/><path d="M14.5 2a17 17 0 0 1 4.5 12"/></svg>' }, // Red
+      "居酒屋": { color: "#6366f1", icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8a2 2 0 0 0 2-2V9a4 4 0 0 0-4-4h-6a4 4 0 0 0-4 4v10a2 2 0 0 0 2 2Z"/><path d="M6 14h12"/><path d="M6 9h12"/></svg>' }, // Indigo
+      "クラフトビール": { color: "#f59e0b", icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 11h1a3 3 0 0 1 0 6h-1"/><path d="M9 12v6"/><path d="M13 12v6"/><path d="M14 5a6 6 0 0 0-6 6v3a6 6 0 0 0 6 6 6 6 0 0 0 6-6v-3a6 6 0 0 0-6-6Z"/></svg>' }, // Amber
+      "カフェ": { color: "#10b981", icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" x2="6" y1="2" y2="4"/><line x1="10" x2="10" y1="2" y2="4"/><line x1="14" x2="14" y1="2" y2="4"/></svg>' }, // Emerald
+      "お土産": { color: "#ec4899", icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v10H4V12"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>' }, // Pink
+      "default": { color: "#6b7280", icon: '' } // Gray
+    };
+
+    // --- 3. KML to GeoJSON Converter ---
+    function parseKMLtoGeoJSON(xmlText) {
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+      const folders = xmlDoc.getElementsByTagName("Folder");
+
+      const geoJSON = {
+        type: "FeatureCollection",
+        features: []
+      };
+
+      for (let folder of folders) {
+        const folderName = folder.getElementsByTagName("name")[0]?.textContent || "Uncategorized";
+        const placemarks = folder.getElementsByTagName("Placemark");
+
+        for (let placemark of placemarks) {
+          const name = placemark.getElementsByTagName("name")[0]?.textContent;
+          const coordinatesRaw = placemark.getElementsByTagName("coordinates")[0]?.textContent.trim();
+
+          if (coordinatesRaw) {
+            const [lng, lat, alt] = coordinatesRaw.split(',').map(Number);
+
+            geoJSON.features.push({
+              type: "Feature",
+              properties: {
+                name: name,
+                category: folderName
+              },
+              geometry: {
+                type: "Point",
+                coordinates: [lng, lat] // GeoJSON is [lng, lat]
+              }
+            });
+          }
+        }
+      }
+      return geoJSON;
+    }
+
+    // --- 4. Main Application Logic ---
+    document.addEventListener('DOMContentLoaded', () => {
+
+      // Initialize Map
+      const map = L.map('map').setView([35.859, 139.657], 16); // Center on Urawa Station area
+
+      // Add Tile Layer (OpenStreetMap)
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        maxZoom: 20
+      }).addTo(map);
+
+      // Parse Data
+      const geoData = parseKMLtoGeoJSON(kmlString);
+
+      // Log for debugging/export purposes
+      console.log("Converted GeoJSON:", JSON.stringify(geoData, null, 2));
+
+      // Layer Groups for Filtering
+      const layers = {};
+      const overlayMaps = {};
+
+      // Create a default layer group for each category found
+      geoData.features.forEach(feature => {
+        const cat = feature.properties.category;
+        if (!layers[cat]) {
+          layers[cat] = L.layerGroup().addTo(map); // Add to map by default
+          // Create HTML for Legend
+          const config = categoriesConfig[cat] || categoriesConfig["default"];
+          const legendHtml = `<span class="category-badge" style="background-color: ${config.color}"></span>${cat}`;
+          overlayMaps[legendHtml] = layers[cat];
+        }
+      });
+
+      // Add Markers
+      geoData.features.forEach(feature => {
+        const { name, category } = feature.properties;
+        const [lng, lat] = feature.geometry.coordinates;
+        const config = categoriesConfig[category] || categoriesConfig["default"];
+
+        // Create Custom Icon
+        const customIcon = L.divIcon({
+          className: 'custom-div-icon',
+          html: `<div class="custom-icon" style="background-color: ${config.color}; width: 32px; height: 32px;">
+                            ${config.icon}
+                           </div>`,
+          iconSize: [32, 32],
+          iconAnchor: [16, 16],
+          popupAnchor: [0, -20]
+        });
+
+        const marker = L.marker([lat, lng], { icon: customIcon });
+
+        // Popup Content
+        const popupContent = `
+                    <div class="text-center">
+                        <h3 class="font-bold text-base mb-1">${name}</h3>
+                        <span class="text-xs px-2 py-0.5 rounded text-white" style="background-color: ${config.color}">${category}</span>
+                    </div>
+                `;
+
+        marker.bindPopup(popupContent);
+
+        // Add to appropriate layer
+        if (layers[category]) {
+          layers[category].addLayer(marker);
+        }
+      });
+
+      // Add Layer Control (Legend)
+      L.control.layers(null, overlayMaps, { position: 'bottomright', collapsed: false }).addTo(map);
+
+      // Adjust bounds to fit all markers
+      if (geoData.features.length > 0) {
+        const group = L.featureGroup(Object.values(layers).map(l => l.getLayers()).flat());
+        map.fitBounds(group.getBounds(), { padding: [50, 50] });
+      }
+    });
+  </script>
+</body>
+
+</html>

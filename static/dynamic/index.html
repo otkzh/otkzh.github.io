@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dynamic Rhythm Engine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=JetBrains+Mono:wght@300;500&display=swap');
+
+      body {
+        margin: 0;
+        overflow: hidden;
+        background-color: #000;
+        color: #fff;
+        font-family: 'JetBrains Mono', monospace;
+        touch-action: none;
+      }
+
+      .hud-title {
+        font-family: 'Syncopate', sans-serif;
+      }
+
+      /* ネオンエフェクト */
+      .neon-border {
+        box-shadow: 0 0 15px rgba(0, 255, 255, 0.4),
+          inset 0 0 10px rgba(0, 255, 255, 0.2);
+        border: 1px solid rgba(0, 255, 255, 0.5);
+      }
+
+      .glass-ui {
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(20px);
+      }
+
+      /* スライダー */
+      input[type='range'] {
+        -webkit-appearance: none;
+        background: #222;
+        height: 4px;
+        border-radius: 2px;
+      }
+      input[type='range']::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 18px;
+        height: 18px;
+        background: #00ffff;
+        border-radius: 50%;
+        cursor: pointer;
+        box-shadow: 0 0 10px #00ffff;
+      }
+
+      /* アニメーション */
+      .slide-up {
+        transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+      }
+      .collapsed {
+        transform: translateY(calc(100% - 40px));
+      }
+
+      #visual-canvas {
+        filter: contrast(1.1) brightness(1.1) saturate(1.2);
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="visual-canvas"></canvas>
+
+    <!-- 初期画面 -->
+    <div
+      id="init-overlay"
+      class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black"
+    >
+      <h1
+        class="hud-title text-4xl font-bold mb-2 tracking-widest text-cyan-400"
+      >
+        DYNAMIC ENGINE
+      </h1>
+      <p class="text-[10px] text-gray-500 mb-10 tracking-[0.5em]">
+        AUDIO VELOCITY & ACCELERATION ANALYZER
+      </p>
+      <button
+        id="init-btn"
+        class="px-16 py-4 neon-border text-cyan-400 font-bold hover:bg-cyan-400 hover:text-black transition-all duration-500"
+      >
+        CONNECT SENSORS
+      </button>
+    </div>
+
+    <!-- 上部HUD (リアルタイム計測値) -->
+    <div
+      id="hud-top"
+      class="fixed top-0 left-0 w-full p-6 grid grid-cols-2 md:grid-cols-4 gap-4 pointer-events-none opacity-0 transition-opacity duration-1000"
+    >
+      <div class="p-3 border-l-2 border-cyan-500 bg-black/40">
+        <div class="text-[8px] text-cyan-500">VELOCITY (ΔE)</div>
+        <div id="val-velocity" class="text-xl font-bold">0.00</div>
+      </div>
+      <div class="p-3 border-l-2 border-pink-500 bg-black/40">
+        <div class="text-[8px] text-pink-500">ACCELERATION (ΔV)</div>
+        <div id="val-accel" class="text-xl font-bold">0.00</div>
+      </div>
+      <div class="p-3 border-l-2 border-yellow-500 bg-black/40">
+        <div class="text-[8px] text-yellow-500">AUTO-SENSITIVITY</div>
+        <div id="val-auto-sens" class="text-xl font-bold">1.0x</div>
+      </div>
+      <div class="p-3 border-l-2 border-purple-500 bg-black/40">
+        <div class="text-[8px] text-purple-500">PITCH RANGE</div>
+        <div id="val-pitch" class="text-xl font-bold">0 Hz</div>
+      </div>
+    </div>
+
+    <!-- 下部コントロールパネル (折りたたみ式) -->
+    <div
+      id="panel-container"
+      class="fixed bottom-0 left-0 w-full glass-ui border-t border-white/10 slide-up collapsed z-50"
+    >
+      <button
+        id="toggle-panel"
+        class="w-full h-10 flex items-center justify-center text-[10px] tracking-widest text-gray-400 hover:text-white transition-colors"
+      >
+        [ SETTINGS & PARAMETERS ]
+      </button>
+      <div class="p-8 grid grid-cols-1 md:grid-cols-3 gap-10">
+        <div>
+          <div class="flex justify-between mb-3">
+            <label class="text-[10px] text-cyan-500">BASE SENSITIVITY</label>
+            <span id="label-base-sens" class="text-xs">1.5</span>
+          </div>
+          <input
+            type="range"
+            id="sl-base-sens"
+            min="0.5"
+            max="3.0"
+            step="0.1"
+            value="1.5"
+            class="w-full"
+          />
+          <p class="text-[8px] text-gray-500 mt-2">
+            オート感度のベース倍率を調整します。
+          </p>
+        </div>
+        <div>
+          <div class="flex justify-between mb-3">
+            <label class="text-[10px] text-cyan-500">HISTORY SCAN (SEC)</label>
+            <span class="text-xs">5.0</span>
+          </div>
+          <div class="h-1 bg-cyan-900 rounded-full w-full relative">
+            <div
+              class="absolute inset-y-0 left-0 bg-cyan-500 rounded-full"
+              style="width: 100%"
+            ></div>
+          </div>
+          <p class="text-[8px] text-gray-500 mt-2">
+            直近5秒間の平均偏差を常時計算中。
+          </p>
+        </div>
+        <div>
+          <div class="flex justify-between mb-3">
+            <label class="text-[10px] text-cyan-500">VISUAL INTENSITY</label>
+            <span id="label-visual-int" class="text-xs">1.0</span>
+          </div>
+          <input
+            type="range"
+            id="sl-visual-int"
+            min="0.1"
+            max="2.0"
+            step="0.1"
+            value="1.0"
+            class="w-full"
+          />
+        </div>
+      </div>
+    </div>
+
+    <script>
+      /**
+       * Dynamic Rhythm & Motion Engine
+       */
+      const canvas = document.getElementById('visual-canvas')
+      const ctx = canvas.getContext('2d')
+      const initBtn = document.getElementById('init-btn')
+      const overlay = document.getElementById('init-overlay')
+      const panel = document.getElementById('panel-container')
+      const toggleBtn = document.getElementById('toggle-panel')
+
+      let audioCtx, analyser, dataArray
+      let isStarted = false
+
+      // --- データ解析用変数 ---
+      const HISTORY_SECONDS = 5
+      const FPS = 60
+      const MAX_HISTORY = HISTORY_SECONDS * FPS
+      let energyHistory = [] // 直近5秒のエネルギー履歴
+
+      let lastEnergy = 0
+      let lastVelocity = 0
+      let autoSensFactor = 1.0
+
+      // ビジュアル用
+      let particles = []
+      let attackParticles = []
+      let globalHue = 180
+      let shakeAmount = 0
+
+      // --- 初期化 ---
+      function resize() {
+        canvas.width = window.innerWidth
+        canvas.height = window.innerHeight
+      }
+      window.addEventListener('resize', resize)
+      resize()
+
+      toggleBtn.onclick = () => panel.classList.toggle('collapsed')
+
+      initBtn.onclick = async () => {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: true,
+          })
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)()
+          const source = audioCtx.createMediaStreamSource(stream)
+          analyser = audioCtx.createAnalyser()
+          analyser.fftSize = 1024
+          source.connect(analyser)
+          dataArray = new Uint8Array(analyser.frequencyBinCount)
+
+          overlay.style.opacity = '0'
+          setTimeout(() => {
+            overlay.style.display = 'none'
+            document.getElementById('hud-top').style.opacity = '1'
+          }, 500)
+
+          isStarted = true
+          loop()
+        } catch (err) {
+          alert('マイクの使用を許可してください。')
+        }
+      }
+
+      // --- メインループ ---
+      function loop() {
+        if (!isStarted) return
+        requestAnimationFrame(loop)
+
+        analyser.getByteFrequencyData(dataArray)
+
+        // 1. 基本エネルギーの算出 (Heat)
+        let currentEnergy = 0
+        for (let i = 0; i < dataArray.length; i++) currentEnergy += dataArray[i]
+        currentEnergy /= dataArray.length
+
+        // 2. 速度 (Velocity) & 加速度 (Acceleration) の計算
+        // V = E(t) - E(t-1)
+        // A = V(t) - V(t-1)
+        const velocity = currentEnergy - lastEnergy
+        const acceleration = velocity - lastVelocity
+
+        // 3. 履歴の保存とオート感度
+        energyHistory.push(currentEnergy)
+        if (energyHistory.length > MAX_HISTORY) energyHistory.shift()
+
+        // オート感度調整 (過去5秒の平均偏差に基づく)
+        const avg =
+          energyHistory.reduce((a, b) => a + b, 0) / energyHistory.length
+        const variance =
+          energyHistory.reduce((a, b) => a + Math.pow(b - avg, 2), 0) /
+          energyHistory.length
+        const stdDev = Math.sqrt(variance)
+
+        // ノイズレベルが高いほど係数を下げて感度を調整
+        const baseSens = parseFloat(
+          document.getElementById('sl-base-sens').value
+        )
+        autoSensFactor = (1.0 / (stdDev + 1)) * baseSens * 20
+
+        // 4. アタック音とビートの検知
+        // 低域(0-10)をビート、広帯域の急上昇をアタックとする
+        let bassEnergy = 0
+        for (let i = 0; i < 5; i++) bassEnergy += dataArray[i]
+        bassEnergy /= 5
+
+        const beatThreshold = avg + stdDev * baseSens
+        const isBeat = bassEnergy > beatThreshold && acceleration > 2
+        const isAttack = velocity > stdDev * 0.5 && velocity > 5
+
+        if (isBeat) triggerBeat(bassEnergy)
+        if (isAttack) triggerAttack(velocity)
+
+        // 5. 数値の更新 (HUD)
+        updateHUD(velocity, acceleration, autoSensFactor, currentEnergy)
+
+        // 6. 描画
+        draw(currentEnergy, velocity, acceleration)
+
+        // 値の保存
+        lastEnergy = currentEnergy
+        lastVelocity = velocity
+      }
+
+      function updateHUD(v, a, s, e) {
+        document.getElementById('val-velocity').innerText = v.toFixed(2)
+        document.getElementById('val-accel').innerText = a.toFixed(2)
+        document.getElementById('val-auto-sens').innerText = s.toFixed(2) + 'x'
+
+        // Pitch 推定 (簡易)
+        let maxVal = 0,
+          maxIdx = 0
+        for (let i = 10; i < dataArray.length / 2; i++) {
+          if (dataArray[i] > maxVal) {
+            maxVal = dataArray[i]
+            maxIdx = i
+          }
+        }
+        const freq = (maxIdx * audioCtx.sampleRate) / analyser.fftSize
+        document.getElementById('val-pitch').innerText =
+          Math.round(freq) + ' Hz'
+
+        document.getElementById('label-base-sens').innerText =
+          document.getElementById('sl-base-sens').value
+        document.getElementById('label-visual-int').innerText =
+          document.getElementById('sl-visual-int').value
+      }
+
+      function triggerBeat(p) {
+        globalHue = (globalHue + 40) % 360
+        shakeAmount = p * 0.2
+        // 爆発パーティクル
+        for (let i = 0; i < 20; i++) {
+          particles.push(
+            new Particle(canvas.width / 2, canvas.height / 2, globalHue, true)
+          )
+        }
+      }
+
+      function triggerAttack(v) {
+        // 鋭い火花
+        for (let i = 0; i < 5; i++) {
+          attackParticles.push(
+            new Particle(
+              Math.random() * canvas.width,
+              Math.random() * canvas.height,
+              (globalHue + 180) % 360,
+              false,
+              v * 0.5
+            )
+          )
+        }
+      }
+
+      class Particle {
+        constructor(x, y, h, isBeat, speedMult = 1) {
+          this.x = x
+          this.y = y
+          this.h = h
+          this.alpha = 1.0
+          const angle = Math.random() * Math.PI * 2
+          const force =
+            (isBeat ? Math.random() * 15 + 5 : Math.random() * 5 + 2) *
+            speedMult
+          this.vx = Math.cos(angle) * force
+          this.vy = Math.sin(angle) * force
+          this.decay = Math.random() * 0.02 + 0.01
+          this.size = isBeat ? Math.random() * 5 + 2 : Math.random() * 2 + 1
+        }
+        update() {
+          this.x += this.vx
+          this.y += this.vy
+          this.vx *= 0.95
+          this.vy *= 0.95
+          this.alpha -= this.decay
+        }
+        draw() {
+          ctx.globalAlpha = this.alpha
+          ctx.fillStyle = `hsla(${this.h}, 100%, 70%, ${this.alpha})`
+          ctx.beginPath()
+          ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2)
+          ctx.fill()
+        }
+      }
+
+      function draw(energy, velocity, accel) {
+        const visualInt = parseFloat(
+          document.getElementById('sl-visual-int').value
+        )
+
+        // 画面揺らし
+        let sx = 0,
+          sy = 0
+        if (shakeAmount > 0.1) {
+          sx = (Math.random() - 0.5) * shakeAmount
+          sy = (Math.random() - 0.5) * shakeAmount
+          shakeAmount *= 0.9
+        }
+
+        ctx.setTransform(1, 0, 0, 1, sx, sy)
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.15)'
+        ctx.fillRect(-20, -20, canvas.width + 40, canvas.height + 40)
+
+        const cx = canvas.width / 2
+        const cy = canvas.height / 2
+
+        // 加速度に応じたグリッドラインの歪み
+        ctx.strokeStyle = `hsla(${globalHue}, 100%, 50%, ${0.1 + accel * 0.05})`
+        ctx.lineWidth = 1
+        const gridSize = 50
+        const offset = (energy * 0.5) % gridSize
+
+        for (let x = offset; x < canvas.width; x += gridSize) {
+          ctx.beginPath()
+          ctx.moveTo(x, 0)
+          ctx.lineTo(x, canvas.height)
+          ctx.stroke()
+        }
+
+        // メイン・エネルギー・コア
+        const coreRadius = (50 + energy * 2) * visualInt
+        const gradient = ctx.createRadialGradient(
+          cx,
+          cy,
+          0,
+          cx,
+          cy,
+          coreRadius * 2
+        )
+        gradient.addColorStop(0, `hsla(${globalHue}, 100%, 60%, 0.8)`)
+        gradient.addColorStop(0.5, `hsla(${globalHue}, 100%, 40%, 0.2)`)
+        gradient.addColorStop(1, 'transparent')
+
+        ctx.fillStyle = gradient
+        ctx.beginPath()
+        ctx.arc(cx, cy, coreRadius * 2, 0, Math.PI * 2)
+        ctx.fill()
+
+        // 速度(Velocity)によるリングの回転
+        ctx.save()
+        ctx.translate(cx, cy)
+        ctx.rotate(Date.now() * 0.001 + velocity * 0.1)
+
+        const segments = 8
+        for (let i = 0; i < segments; i++) {
+          const angle = (i / segments) * Math.PI * 2
+          ctx.rotate(angle)
+          ctx.strokeStyle = `hsla(${(globalHue + 180) % 360}, 100%, 70%, 0.8)`
+          ctx.lineWidth = 2 + accel * 2
+          ctx.strokeRect(coreRadius, -10, 40 + energy, 20)
+        }
+        ctx.restore()
+
+        // パーティクル更新
+        particles = particles.filter((p) => p.alpha > 0)
+        particles.forEach((p) => {
+          p.update()
+          p.draw()
+        })
+
+        attackParticles = attackParticles.filter((p) => p.alpha > 0)
+        attackParticles.forEach((p) => {
+          p.update()
+          p.draw()
+        })
+
+        ctx.setTransform(1, 0, 0, 1, 0, 0)
+      }
+    </script>
+  </body>
+</html>

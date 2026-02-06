@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スプレッドシート to JSON コンバーター</title>
+    <!-- Tailwind CSSをCDN経由で読み込み -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* フォント設定 */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* スクロールバーのスタイル */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-4xl mx-auto">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-white">スプレッドシート to JSON コンバーター</h1>
+            <p class="text-gray-400 mt-2">スプレッドシートのデータを貼り付けて、瞬時にJSONへ変換します。</p>
+        </header>
+
+        <main class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- 入力エリア -->
+            <div class="flex flex-col">
+                <label for="input-data" class="mb-2 font-semibold text-gray-300">入力データ:</label>
+                <textarea 
+                    id="input-data"
+                    rows="15"
+                    class="w-full p-4 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200 text-gray-200 resize-none"
+                    placeholder="ここにスプレッドシートのデータを貼り付け...&#10;例:&#10;名前    年齢    都市&#10;山田太郎  30  東京&#10;佐藤花子  25  大阪"
+                ></textarea>
+                <!-- ボタンエリア -->
+                <div class="mt-4 grid grid-cols-2 gap-4">
+                    <button id="clear-btn" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-4 rounded-lg transition duration-200 shadow-lg">
+                        クリア
+                    </button>
+                    <button id="convert-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition duration-200 shadow-lg">
+                        変換する
+                    </button>
+                </div>
+            </div>
+
+            <!-- 出力エリア -->
+            <div class="flex flex-col">
+                <div class="flex justify-between items-center mb-2">
+                    <label for="output-json" class="font-semibold text-gray-300">出力JSON:</label>
+                    <div class="relative">
+                        <button id="copy-btn" class="bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 text-sm disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                            コピー
+                        </button>
+                        <span id="copy-feedback" class="absolute -top-8 right-0 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-md opacity-0 transition-opacity duration-300">コピーしました！</span>
+                    </div>
+                </div>
+                <div class="relative h-full">
+                    <pre class="w-full h-full bg-gray-800 border border-gray-700 rounded-lg overflow-auto"><code id="output-json" class="language-json p-4 block text-gray-300 whitespace-pre-wrap break-all"></code></pre>
+                    <div id="output-placeholder" class="absolute inset-0 flex items-center justify-center text-gray-500 p-4">
+                        ここに変換後のJSONが表示されます
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <footer class="text-center mt-8 text-gray-500 text-sm">
+            <p>&copy; 2024 JSON Converter. All Rights Reserved.</p>
+        </footer>
+    </div>
+
+    <script>
+        // DOM要素の取得
+        const inputDataEl = document.getElementById('input-data');
+        const convertBtn = document.getElementById('convert-btn');
+        const clearBtn = document.getElementById('clear-btn'); // 追加
+        const outputJsonEl = document.getElementById('output-json');
+        const copyBtn = document.getElementById('copy-btn');
+        const copyFeedbackEl = document.getElementById('copy-feedback');
+        const outputPlaceholder = document.getElementById('output-placeholder');
+
+        // 変換ボタンのクリックイベント
+        convertBtn.addEventListener('click', () => {
+            const tsvData = inputDataEl.value.trim();
+            if (!tsvData) {
+                outputJsonEl.textContent = '';
+                outputPlaceholder.style.display = 'flex';
+                copyBtn.disabled = true;
+                return;
+            }
+
+            // TSV（タブ区切り）をJSONに変換する
+            try {
+                // 行ごとに分割し、空の行は除外する
+                const rows = tsvData.split('\n').filter(row => row.trim() !== '');
+                if (rows.length < 1) {
+                    throw new Error("データがありません。");
+                }
+                
+                // 1行目をヘッダー（キー）として取得
+                const headers = rows.shift().split('\t').map(header => header.trim());
+                
+                // データ行をオブジェクトの配列に変換
+                const jsonArray = rows.map(row => {
+                    const values = row.split('\t');
+                    const obj = {};
+                    headers.forEach((header, index) => {
+                        const rawValue = values[index] ? values[index].trim() : '';
+                        
+                        // 値が空でなく、かつ数値に変換可能であれば数値型に変換する（変更点）
+                        if (rawValue !== '' && !isNaN(Number(rawValue))) {
+                            obj[header] = Number(rawValue);
+                        } else {
+                            obj[header] = rawValue;
+                        }
+                    });
+                    return obj;
+                });
+
+                // JSON文字列に変換（見やすくフォーマット）
+                const jsonString = JSON.stringify(jsonArray, null, 2);
+                
+                // 結果を表示
+                outputJsonEl.textContent = jsonString;
+                outputPlaceholder.style.display = 'none';
+                copyBtn.disabled = false;
+
+            } catch (error) {
+                outputJsonEl.textContent = `エラー: ${error.message}\n\n入力データ形式を確認してください。\n1行目はヘッダー、2行目以降はデータとしてください。\n列はタブで区切られている必要があります。`;
+                outputPlaceholder.style.display = 'none';
+                copyBtn.disabled = true;
+            }
+        });
+
+        // クリアボタンのクリックイベント（追加）
+        clearBtn.addEventListener('click', () => {
+            inputDataEl.value = ''; // 入力欄をクリア
+            outputJsonEl.textContent = ''; // 出力欄をクリア
+            outputPlaceholder.style.display = 'flex'; // プレースホルダーを再表示
+            copyBtn.disabled = true; // コピーボタンを無効化
+            inputDataEl.focus(); // 入力欄にフォーカスを戻す
+        });
+
+        // コピーボタンのクリックイベント
+        copyBtn.addEventListener('click', () => {
+            const jsonText = outputJsonEl.textContent;
+            if (!jsonText) return;
+
+            // document.execCommandは非推奨ですが、iframe環境での互換性のために使用します
+            const tempTextArea = document.createElement('textarea');
+            tempTextArea.value = jsonText;
+            document.body.appendChild(tempTextArea);
+            tempTextArea.select();
+            try {
+                document.execCommand('copy');
+                // コピー成功のフィードバックを表示
+                copyFeedbackEl.style.opacity = '1';
+                setTimeout(() => {
+                    copyFeedbackEl.style.opacity = '0';
+                }, 2000);
+            } catch (err) {
+                console.error('コピーに失敗しました:', err);
+                // alertは使用しない
+            }
+            document.body.removeChild(tempTextArea);
+        });
+    </script>
+
+</body>
+</html>

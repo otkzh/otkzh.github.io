@@ -1,0 +1,2831 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>さいたま市 アート資源アーカイブ ローカル版</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <!-- Google Fonts for Booklet Style -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;600;900&family=Shippori+Mincho:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --paper-bg: #FDFBF7;
+            --ink-color: #2C2A29;
+            --accent-color: #8B1E0B; /* Deep red for accents */
+            --border-color: #D5CFC4;
+            --list-width: 350px;
+        }
+        
+        * { box-sizing: border-box; }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Shippori Mincho', 'Noto Serif JP', serif;
+            background-color: #EAE6DF;
+            color: var(--ink-color);
+            overflow: hidden;
+        }
+        
+        #app {
+            display: grid;
+            height: 100vh;
+            width: 100vw;
+            transition: all 0.3s ease;
+        }
+        
+        /* ==================================================
+           Default Layout (Booklet Main) - Desktop
+           ================================================== */
+        body:not(.map-dominant) #app {
+            grid-template-columns: var(--list-width) 1fr;
+            grid-template-rows: 35% 1fr;
+        }
+        body:not(.map-dominant) #map-pane {
+            grid-column: 1; grid-row: 1;
+            border-bottom: 2px solid var(--accent-color);
+            border-right: 1px solid var(--border-color);
+            z-index: 10;
+        }
+        body:not(.map-dominant) #list-pane {
+            grid-column: 1; grid-row: 2;
+            border-right: 1px solid var(--border-color);
+            z-index: 10;
+        }
+        body:not(.map-dominant) #booklet-pane {
+            grid-column: 2; grid-row: 1 / span 2;
+        }
+
+        /* ==================================================
+           Map Dominant Layout - Desktop
+           ================================================== */
+        body.map-dominant #app {
+            grid-template-columns: var(--list-width) 1fr;
+            grid-template-rows: 1fr;
+        }
+        body.map-dominant #list-pane {
+            grid-column: 1; grid-row: 1;
+            border-right: 1px solid var(--border-color);
+            z-index: 10;
+        }
+        body.map-dominant #map-pane {
+            grid-column: 2; grid-row: 1;
+            z-index: 1;
+        }
+        body.map-dominant #booklet-pane {
+            position: absolute;
+            top: 20px; right: 20px; bottom: 20px;
+            width: 450px;
+            z-index: 1000;
+            padding: 0;
+            pointer-events: none; /* allow clicking through map when hidden */
+        }
+        body.map-dominant .booklet {
+            min-height: auto;
+            height: 100%;
+            pointer-events: auto;
+            border-radius: 8px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            padding: 30px;
+        }
+        body.map-dominant .booklet-empty {
+            display: none !important;
+        }
+        body.map-dominant #booklet-pane.hidden {
+            display: none;
+        }
+
+        /* Small close button for overlay mode */
+        #close-booklet {
+            display: none;
+            position: absolute; top: 15px; right: 15px;
+            background: rgba(255,255,255,0.8); border: 1px solid var(--border-color); border-radius: 50%;
+            width: 32px; height: 32px; font-size: 1.2rem; line-height: 1;
+            cursor: pointer; color: var(--ink-color);
+            z-index: 100;
+        }
+        body.map-dominant #close-booklet { display: block; }
+
+
+        /* ==================================================
+           Components
+           ================================================== */
+        #map-pane {
+            position: relative;
+            background-color: #e5e3df;
+            height: 100%;
+        }
+        #map {
+            height: 100%; width: 100%;
+        }
+        
+        #list-pane {
+            background-color: var(--paper-bg);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        .sidebar-header {
+            padding: 15px 20px;
+            background: var(--paper-bg);
+            border-bottom: 1px solid var(--border-color);
+        }
+        .sidebar-header h1 {
+            font-size: 1.1rem; margin: 0 0 10px 0;
+            font-weight: 700; color: var(--accent-color);
+        }
+        
+        /* Controls UI */
+        .controls-row {
+            display: flex; gap: 5px; margin-bottom: 10px;
+        }
+        .btn {
+            flex: 1; padding: 8px 10px; font-size: 0.85rem;
+            background: #fff; border: 1px solid var(--border-color);
+            border-radius: 4px; cursor: pointer;
+            font-family: inherit; font-weight: 600;
+            color: #555; transition: all 0.2s;
+            display: flex; align-items: center; justify-content: center; gap: 5px;
+        }
+        .btn:hover { background: #f0ebe1; }
+        .btn.active { background: var(--accent-color); color: #fff; border-color: var(--accent-color); }
+        
+        .filter-select {
+            width: 100%; padding: 8px; font-size: 0.85rem;
+            border: 1px solid var(--border-color); border-radius: 4px;
+            font-family: inherit; background: #fff;
+        }
+        
+        /* Map overlays */
+        .map-btn {
+            position: absolute; top: 10px; left: 10px; z-index: 400;
+            background: white; border: 2px solid rgba(0,0,0,0.2);
+            border-radius: 4px; padding: 8px 12px;
+            cursor: pointer; font-weight: bold; font-family: inherit; font-size: 0.85rem;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+        }
+        .map-btn:hover { background: #f4f4f4; }
+        body:not(.map-dominant) .map-btn { display: none; }
+        
+        /* List Items */
+        #location-list {
+            flex-grow: 1; overflow-y: auto;
+            padding: 0; margin: 0; list-style: none;
+        }
+        .list-item {
+            padding: 15px 20px;
+            border-bottom: 1px dashed var(--border-color);
+            cursor: pointer; transition: background 0.2s;
+        }
+        .list-item:hover, .list-item.active { background-color: #F4EFE6; }
+        .list-item h3 { margin: 0 0 5px 0; font-size: 1rem; font-weight: 600; }
+        .list-item p {
+            margin: 0; font-size: 0.8rem; color: #666;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        
+        /* Booklet View */
+        #booklet-pane {
+            padding: 40px; overflow-y: auto;
+            display: flex; justify-content: center; align-items: flex-start;
+        }
+        .booklet {
+            background-color: var(--paper-bg);
+            width: 100%; max-width: 900px; min-height: 80vh;
+            padding: 60px 80px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1), inset 0 0 50px rgba(230,225,215,0.5);
+            position: relative;
+            background-image: 
+                linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.5) 2%, rgba(255,255,255,0) 4%),
+                linear-gradient(rgba(240, 235, 225, 0.4) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 30px;
+            border-radius: 2px 5px 5px 2px;
+            overflow-y: auto;
+        }
+        body:not(.map-dominant) .booklet::before {
+            content: ''; position: absolute;
+            top: 0; bottom: 0; left: 0; width: 40px;
+            background: linear-gradient(to right, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0) 100%);
+        }
+        
+        .booklet-empty {
+            text-align: center; color: #999; font-size: 1.2rem;
+            margin-top: 200px; font-style: italic;
+        }
+        .booklet-content { display: none; }
+        .booklet-content.active { display: block; animation: fadeIn 0.3s ease; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .b-header { border-bottom: 2px solid var(--ink-color); padding-bottom: 15px; margin-bottom: 25px; }
+        .b-title { font-size: 2rem; font-weight: 900; margin: 0 0 10px 0; line-height: 1.3; }
+        .b-tagline { font-size: 1.1rem; color: var(--accent-color); margin: 0; font-weight: 600; }
+        .b-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
+        
+        body.map-dominant .b-grid { grid-template-columns: 1fr; gap: 15px; }
+        body.map-dominant .b-title { font-size: 1.6rem; }
+        body.map-dominant .booklet { padding: 40px 30px; }
+
+        .b-section { margin-bottom: 10px; }
+        .b-label {
+            font-size: 0.8rem; color: #777; letter-spacing: 0.1em;
+            margin-bottom: 3px; display: block; border-bottom: 1px dotted var(--border-color); padding-bottom: 2px;
+        }
+        .b-value { font-size: 1rem; margin: 0; line-height: 1.5; }
+        .b-tag { background: #EAE6DF; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; display: inline-block; margin: 2px; }
+        .b-link { color: var(--accent-color); text-decoration: underline; }
+        .b-full-width { grid-column: 1 / -1; }
+        .b-media {
+            margin: 0 0 28px;
+        }
+        .b-eyecatch {
+            margin: 0 0 24px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 18px;
+        }
+        .b-eyecatch img,
+        .b-gallery img {
+            display: block;
+            width: 100%;
+            background: #EAE6DF;
+            object-fit: cover;
+        }
+        .b-eyecatch img {
+            aspect-ratio: 16 / 9;
+            max-height: 460px;
+        }
+        .b-eyecatch figcaption {
+            margin-top: 8px;
+            font-size: 0.75rem;
+            letter-spacing: 0.08em;
+            color: #777;
+        }
+        .b-gallery {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px;
+            margin: 32px 0 6px;
+        }
+        .b-gallery figure {
+            margin: 0;
+        }
+        .b-gallery img {
+            aspect-ratio: 4 / 3;
+        }
+        .b-body-text {
+            font-size: 1rem;
+            line-height: 1.95;
+            white-space: pre-line;
+        }
+        body.map-dominant .b-gallery {
+            grid-template-columns: 1fr;
+        }
+        body.map-dominant .b-eyecatch img {
+            max-height: 260px;
+        }
+        
+        .leaflet-popup-content-wrapper { background: var(--paper-bg); border-radius: 4px; font-family: 'Shippori Mincho', serif; }
+        
+        /* ==================================================
+           Mobile Layout (Responsive)
+           ================================================== */
+        @media (max-width: 768px) {
+            /* Common mobile adjustments */
+            #close-booklet { display: block !important; }
+            .booklet { padding: 30px 20px !important; }
+            .b-grid { grid-template-columns: 1fr !important; }
+            #booklet-pane { padding: 0 !important; }
+            .b-title { font-size: 1.6rem; }
+            .b-gallery { grid-template-columns: 1fr; gap: 14px; }
+            .b-eyecatch img { max-height: 280px; }
+            
+            /* Mobile Default (Booklet/List Main) */
+            body:not(.map-dominant) #app {
+                grid-template-columns: 1fr;
+                grid-template-rows: 35vh 1fr;
+            }
+            body:not(.map-dominant) #map-pane { grid-column: 1; grid-row: 1; border-right: none; }
+            body:not(.map-dominant) #list-pane { grid-column: 1; grid-row: 2; border-right: none; }
+            
+            /* On mobile default, booklet acts as an overlay on top of the list */
+            body:not(.map-dominant) #booklet-pane {
+                grid-column: 1; grid-row: 2;
+                position: relative; z-index: 20; background: var(--paper-bg);
+            }
+            body:not(.map-dominant) .booklet { min-height: 100%; box-shadow: none; border-radius: 0; background-image: none; }
+            body:not(.map-dominant) .booklet::before { display: none; }
+            
+            /* Hide the get-location button by default on mobile map unless in map-dominant */
+            body:not(.map-dominant) .map-btn { display: block; } /* Actually useful on mobile */
+
+            /* Mobile Map Dominant (Bottom Sheet Style) */
+            body.map-dominant #app {
+                grid-template-rows: 100vh 0;
+            }
+            body.map-dominant #list-pane { display: none; }
+            body.map-dominant #map-pane { grid-column: 1; grid-row: 1; border-bottom: none; }
+            
+            body.map-dominant #booklet-pane {
+                position: fixed;
+                top: auto; bottom: 0; left: 0; right: 0;
+                width: 100%; height: auto; max-height: 75vh;
+                border-radius: 20px 20px 0 0;
+                box-shadow: 0 -5px 20px rgba(0,0,0,0.2);
+                transition: transform 0.3s ease;
+            }
+            body.map-dominant .booklet {
+                border-radius: 20px 20px 0 0;
+            }
+            body.map-dominant #booklet-pane.hidden {
+                transform: translateY(100%);
+                display: block !important; /* Keep it in DOM to slide out */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        
+        <!-- List Pane -->
+        <div id="list-pane">
+            <div class="sidebar-header">
+                <h1>さいたま市 アート資源</h1>
+                
+                <div class="controls-row">
+                    <button class="btn active" id="btn-layout-booklet">📖 冊子メイン</button>
+                    <button class="btn" id="btn-layout-map">🗺️ 地図メイン</button>
+                </div>
+                
+                <select id="category-filter" class="filter-select">
+                    <option value="">すべての年度・区から探す</option>
+                    <!-- Options populated by JS -->
+                </select>
+            </div>
+            <ul id="location-list">
+                <!-- List items populated by JS -->
+            </ul>
+        </div>
+        
+        <!-- Map Pane -->
+        <div id="map-pane">
+            <button class="map-btn" id="btn-geolocation">📍 現在地から探す</button>
+            <div id="map"></div>
+        </div>
+        
+        <!-- Booklet Pane -->
+        <div id="booklet-pane" class="hidden">
+            <div class="booklet">
+                <button id="close-booklet" aria-label="閉じる">×</button>
+                <div id="empty-state" class="booklet-empty">
+                    左側のリストまたは地図上のピンを選択して、<br>詳細な記録を閲覧してください。
+                </div>
+                <div id="content-container">
+                    <!-- Content populated by JS -->
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script>
+        const EMBEDDED_ITEMS = [
+  {
+    "title": "あっぷるはうす",
+    "list_label": "あっぷるはうす \n カフェギャラリーの老舗、長い歴史を重ねた憩いの場所",
+    "tagline": "カフェギャラリーの老舗、長い歴史を重ねた憩いの場所",
+    "fiscal_year": "令和3年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/apple-house/",
+    "body_text": "オープンのいきさつから現在まで\n七里に自宅があり、貸家にするつもりで店舗付き住宅を購入した。オーナーは元事務員で店舗運営など全く経験はなかったが、自分でカフェをやってみたくなり、1979年11月に2階に住みながら、1階に公園に訪れる若向けのカフェをオープンした。15年目に無料駐車場として使っていた場所がなくなったのをきっかけに１階をカフェに、2階をギャラリーに改装し、1、2階で45点余の展示スペースになった。\nそれから25年、オーナーが一人で切り盛りするため体力的なこともあり、2021年の9月に２階を改装、縮小してギャラリーは１階だけになった。\nどんな場所？\n氷川神社参詣口近くにある、ギャラリーカフェとして先駆者的な存在。丸いカウンターがおしゃれで、奥の壁はレンガ作りになっている。美術館に行くのが好きだったオーナーは、近くのコミュニティーセンターで活動しているグループからカフェの壁に自分たちの作品を飾らせてほしいという依頼をうけたことをヒントに「シニアの方々の趣味の活動の発表の場になれば」とギャラリーを開設。８割がそうしたアマ、あとの２割がプロ。中には毎年個展を開いてくれるプロの画家もいる。\nオーナーの想い\nオーナーの高橋さんはふんわりした温かい人柄が伝わってくる方。\nつい最近までは定休日なしで働き詰めだったが、今は月曜日を定休日に。利益を度外視し、今では半月単位で、売り上げの１割をもらう形で貸し出している。これまでも営業活動はしたことはなく、人のつながりを大事に長年やってきた。規模は縮小したが「あそこに行けば感じのいい作品が見られる」という場所を目指してやっていきたい。\nここは地の利に恵まれているし「人の役に立ち、お客さんに喜んで頂ければいい」と語る。\nおいしいコーヒーはもちろんのこと、高橋さんの人柄に惹かれて訪れる客が多い。これからも気楽に作品が展示できる場所を提供し続けてもらいたい。",
+    "address": "さいたま市大宮区高鼻町2−285",
+    "phone": "048-644-9925",
+    "contact_role": "代表",
+    "contact_person": "高橋公恵",
+    "basic_info": {
+      "住所": "さいたま市大宮区高鼻町2−285",
+      "電話番号": "048-644-9925",
+      "代表": "高橋公恵"
+    },
+    "basic_info_links": {},
+    "link_urls": [
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Fapple-house%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-1-12-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-2-11.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-3-12.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3231.2598003345865!2d139.62881161220378!3d35.91614037239767!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018c1378bed2b81%3A0x1f62b368ca4a9c6e!2z44GC44Gj44G344KL44Gv44GG44GZ!5e0!3m2!1sja!2sjp!4v1737699372104!5m2!1sja!2sjp",
+    "geo_id": "1",
+    "ward": "大宮区",
+    "latitude": 35.91553,
+    "longitude": 139.63225,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "エシカルcafe としょかんのとなり",
+    "list_label": "エシカルcafe としょかんのとなり \n 心と体に優しい場所",
+    "tagline": "心と体に優しい場所",
+    "fiscal_year": "令和7年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/ethicalcafe/",
+    "body_text": "オープンの経緯・きっかけは？\nこのカフェは、精神障害のある方の地域生活を支援する「公益社団法人やどかりの里」が中心となって行う『未来を拓く　つなぐ・つくるプロジェクト』の一環として、同団体が運営している。\n地域拠点としてカフェの運営を検討していたところに、現在地の公募が出たご縁で、2022年にカフェとしてオープンした。\n「未来を拓く　つなぐ・つくるプロジェクト」について\nこのプロジェクトは、精神障害のある方たちの支援を行う中で、法的な枠組みだけでは一人一人の生活を支えることが難しいという課題認識から始まった。また高齢者や児童、貧困者支援など様々な分野で同様の課題があることから、「地域のつながりを基盤にした暮らしやすい地域づくり」を目指している。その一環として、緑のトラスト保全第１号地（*）の保全活動や大宮八幡中学校での地域巡回事業など、いくつかの場所で定期的なイベントを開催。エシカルカフェは常時開いている地域拠点として、誰かとつながるきっかけを提供する場所にしていけたら…と考えている。\n*1号地 見沼田圃周辺斜面林\nどのようなカフェか\nカフェのテーマは、人や地球環境、社会、地域におもいやりのある考え方や行動を意味する「エシカル」。心と体に優しい食や品物の提供ができれば…と試行錯誤している。障害のある人たちが作った商品やこだわりの食品、フェアトレード商品などの販売や情報発信も行っている。\nたとえば、カフェで使っているパンは川口市で精神障害のある人の働くことを支援する「晴れ晴れ」が製造。\n原材料だけでなく味にもこだわって作られている。\nまた「旅するぞうさん」という大きな絵画の巡回活動も行う。「旅するぞうさん」は100号サイズの大きな絵。この絵をとても気に入った人が購入し、ぜひ多くの方に知ってほしいと無料で貸し出していて、現在、やどかりの里がそのコーディネートを行っている。貸し出しがないときは、このカフェに飾られている。\n楽しみを共有しながらつながる機会として、みんなで折り紙を折るイベント「折り紙タイム」も毎月１回開催。\nカフェに対する想い\nカフェで「エシカル」に触れてもらう中で、自分が今関わっていることだけでなく、障害のある人たちのこと、自分たちが暮らす地域のこと、環境のことなど、自分の周りに目を向けてもらえるような機会を提供したい。また一人一人の選択が社会にどう影響するかということに触れ、考えていただきたい。\n今後の展開は？\n障害のある人たちの作る商品や心や体に優しい食品などの取り扱いをもっと増やしていくとともに、地域で作られた食材などもメニューに取り入れていけたらと思っている。\n健康面での小さな気がかりなど、病院へいくには気が進まないというとき、カフェにいる看護師や薬剤師などの専門職と気軽に相談できる機会として、まちなか保健室の定期開催も検討中。入り口として、このカフェを活用してもらいたい。",
+    "address": "",
+    "phone": "070-3260-2020",
+    "contact_role": "所在地",
+    "contact_person": "さいたま市見沼区堀崎町48－1",
+    "basic_info": {
+      "所在地": "さいたま市見沼区堀崎町48－1",
+      "電話番号": "070-3260-2020",
+      "代表": "宗野文",
+      "HP/SNS": "ホームページ"
+    },
+    "basic_info_links": {
+      "HP/SNS": [
+        "https://ethicalcafe-tonari.studio.site/"
+      ]
+    },
+    "link_urls": [
+      "https://ethicalcafe-tonari.studio.site/",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Fethicalcafe%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2026/03/5-1-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2026/03/5-2-415x311.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2026/03/5-3-415x311.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3230.5103299025172!2d139.65474407556246!3d35.93448401602087!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018c1070edf54f1%3A0xa30a3ed2b01d0fd3!2z44Ko44K344Kr44OrY2FmZSDjgajjgZfjgofjgYvjgpPjga7jgajjgarjgoo!5e0!3m2!1sja!2sjp!4v1774675450595!5m2!1sja!2sjp",
+    "geo_id": "2",
+    "ward": "見沼区",
+    "latitude": 35.93456,
+    "longitude": 139.65727,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "絵本と珈琲　ルナール",
+    "list_label": "絵本と珈琲　ルナール \n 大切なことは、絵本の中に",
+    "tagline": "大切なことは、絵本の中に",
+    "fiscal_year": "令和7年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/renard/",
+    "body_text": "絵本に囲まれた素敵な空間\n中浦和駅から徒歩20分、住宅街の中を歩いていくと見えてくる、かわいいキツネの暖簾がかかったお店が、今回訪れるカフェ「絵本と珈琲 ルナール」(以下、ルナール)だ。お店の中に入ると、笑顔のオーナーさんと沢山の絵本が迎えてくれた。このカフェでは、店内で絵本を購入したり、食事をしながら手に取って読んだりすることができる。\nオープンのきっかけと絵本に対する思い\n今回お話を伺ったのは、オーナーの島田久美子さん。お店を始めたきっかけと絵本に対する思いについて聞かせていただいた。\nルナールがオープンしたのは2022年5月。元々、父親が地元で本屋を経営していた影響で絵本が好きだった島田さんは、父親のお店が閉店となるタイミングで、もっと絵本の魅力を楽しんでもらえて、ゆっくりできる場をつくりたいとの思いから、本屋にカフェを併設したお店を開くことにした。ルナールでは、絵本に関わるイベントも多く開催している。各人が好きな絵本を持ち寄って朗読するお話会や原画を飾る展示の鑑賞などを通して、絵本好きの人と交流することができるのも魅力の1つだ。また、ルナールで販売している絵本は、すべて島田さんが読んで面白いと思ったオススメの本ばかり。\n「絵本は大人も子どもも楽しめる。少しでも絵本の良さをみなさんに伝えていきたい。」そう語る島田さんは、取材の合間にも楽しそうに絵本を手に取っていた。\n今後に向けた展望や思い\nそんな島田さんに今後の展望を聞いてみた。\nまだ模索中とのことだったが、熱い思いを語っていただいた。\n「開店当時、最初はお客さんもそれほど多くはなかったが、ありがたいことに色々な方に来ていただいて、つながりも増えてきた。今後も、1番は絵本をみなさんに楽しんでほしい。そして絵本を軸にして、お客さん同士もゆるやかにつながっていけたらいいな、と思っている。お子さん連れのご家族に多く来ていただいていることもとても嬉しい。お子さんも楽しめて、お母さんもリラックスして休憩できるような場所であれたらと思っている。」\n最後に\n「ルナール」というお店の名前の意味は、フランス語の「キツネ」。これは島田さんが大好きな絵本「星の王子さま」に出てくるキツネに由来している。\n「大切なことは目に見えない」という名言が印象的な絵本だが、島田さんは言う。\n「大切なことは絵本の中に。」\nみなさんも絵本を開いてみたくなったら、ルナールを訪れてみるといいかもしれない。",
+    "address": "",
+    "phone": "048-839-7011",
+    "contact_role": "所在地",
+    "contact_person": "さいたま市桜区町谷１丁目８−５",
+    "basic_info": {
+      "所在地": "さいたま市桜区町谷１丁目８−５",
+      "電話番号": "048-839-7011",
+      "代表": "島田　久美子",
+      "HP/SNS": "ホームページ"
+    },
+    "basic_info_links": {
+      "HP/SNS": [
+        "https://www.instagram.com/renard.ehon/"
+      ]
+    },
+    "link_urls": [
+      "https://www.instagram.com/renard.ehon/",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Frenard%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2026/03/200023-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2026/03/200017-415x277.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2026/03/200033-415x277.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2026/03/200008-415x276.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d25869.05134382227!2d139.58846357910159!3d35.858040399999986!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018c115b7affc2b%3A0x7c0d6227261ad800!2z57W15pys44Go54-I55CyIOODq-ODiuODvOODqw!5e0!3m2!1sja!2sjp!4v1774673816998!5m2!1sja!2sjp",
+    "geo_id": "3",
+    "ward": "桜区",
+    "latitude": 35.85819,
+    "longitude": 139.6234,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "大西屋酒店（MATCHBOX）",
+    "list_label": "大西屋酒店（MATCHBOX） \n シドニーで生まれたOhnisiya World",
+    "tagline": "シドニーで生まれたOhnisiya World",
+    "fiscal_year": "令和7年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/ohnisiya/",
+    "body_text": "大西屋酒店が語る街の姿\nかつてはメイン道路だった大宮駅から氷川神社への近道「一の宮通り」、この通りで大西屋酒店は大正期より創業し、1926年（昭和元年）現在地に新築移転。この店は時代の流れを見続け、街にいろいろな顔を向けてきた。ご近所に酒や日常品を配達していた頃は、年末の集金作業が夜中まで続いた。その頃からの毎年12月10日の十日市での甘酒や酒の店先販売が今も続き、現在は通常の酒店とともに、店主が名付けたMATCHBOXという角打ちスタイルもある。覗いてみると薄暗く入りづらいかもしれないが、昭和の雰囲気を温かく漂わせている。\n店主がつくる夢の空間\n店主・堀江利武さんは、子供の頃、近所のおもちゃ問屋でミニカーのMatchboxに憧れ、父親に買ってもらった。それ以来、模型作りや工作、イラストなどの趣味が続いている。廃品を手に入れ愛情たっぷりにアップサイクルした白く光る子ども用ゴーカートが、黒光りする梁と天井の下に鎮座。他にも堀江さんが制作した屋号入りの木製の車や多くの作品が店内とショーケースに並ぶ。\nお店のスタイルは30代にオーストラリアで出会った酒屋でヒントを得た。どんな人も受け入れ、何事にも寛容なスタイルは、毎晩角打ちに集まる様々な顔ぶれに表れている。本棚にはお客さんたちが広告紙の裏に4コマ漫画を描き、製本したものなど、暗がりの中にはこうした交流のエピソードが分厚く潜む魅力的な空間だ。\nさいたま国際芸術祭のアーティストやサポーターたちにとって重要なたまり場\nさいたま国際芸術祭２０２０では、近隣の旧大宮図書館が主要会場の一つであり、２０２３では大西屋自身が展示会場になったことで、多くのアーティストやサポーターたちが立ち寄った。2021年の市民プロジェクトではアーティストの寿の色（じゅのしき）さんが「大宮の色をキャッチandリリース」プロジェクトで大西屋をイメージした色でネオ赤提灯（紙の立体ステンドグラス）を市民と制作。それは今もカウンター上の天井から吊り下げられていた。\nこれからも堀江さんはカウンターに座り、これまでのような穏やかな眼差しで大西屋の暗がりにどんな明かりが灯り、地層が堆積していくのかを見守っていくのだろう。",
+    "address": "",
+    "phone": "048-641-0703",
+    "contact_role": "所在地",
+    "contact_person": "さいたま市大宮区大門町3-207",
+    "basic_info": {
+      "所在地": "さいたま市大宮区大門町3-207",
+      "電話番号": "048-641-0703",
+      "代表": "堀江利武"
+    },
+    "basic_info_links": {},
+    "link_urls": [
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Fohnisiya%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2026/03/1-1ohnisiya-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2026/03/1-2ohnisiya-415x277.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2026/03/1-3ohnisiya-415x402.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2026/03/1-5ohnisiya-415x514.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2026/03/1-4ohnisiya-415x201.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3231.53123123495!2d139.62679271125674!3d35.90949497239972!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018c140a2e164bb%3A0xeb7c248228644911!2z5aSn6KW_5bGL6YWS5bqX!5e0!3m2!1sja!2sjp!4v1774671740398!5m2!1sja!2sjp",
+    "geo_id": "4",
+    "ward": "大宮区",
+    "latitude": 35.90927,
+    "longitude": 139.62918,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "ONVO SALON urawa 株式会社 ものくり商事",
+    "list_label": "ONVO SALON urawa 株式会社 ものくり商事 \n いろんな人と出会い、新たな自分を見つけることができる拠点",
+    "tagline": "いろんな人と出会い、新たな自分を見つけることができる拠点",
+    "fiscal_year": "令和3年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/onvo-salon-urawa/",
+    "body_text": "オープンのきっかけ、経緯\nインテリアデザインの専門学校を卒業後、早坂さんは不動産業に就職し、不動産について学んだ。その後、専門学校の友人であり、家具デザインや建築関係の仕事をしている方々と会社を設立した。\n「ものくり商事」はmonokuri = ものづくりで恩送りをするという意味が込められている。恩を返すのではなく、次世代に繋げていくなど、恩は返すだけではなく送るという概念を本で読み、 自分たちにできる恩送りは何かを考え、ものづくりで恩送りをしようということで立ち上げたのが「ものくり商事」である。\nどのような活動をしているのか\n誰もが使える会議室やオープンスペースを設け、自分の作品や考えを表現する場、人々が集まる場として提供している。特定の目的で場を提供するのではなく、制限を設けないことで、誰かと出会い、その人が変わっていく場として提供している。\nまた、定期的に施設を利用する人とアーティストを繋げることで、お客さんとアーティストのサポートや交流の場を設けている。レンタルスペースの利用だけでなく、展示作品を見るお客さんとアーティストの仲介役等も担っている。\nどのような場・施設があるとよいか\nお客さんからはヨガ系のイベントや自分のスキルを出せる場などが欲しいという要望を受けるという。また、子ども向けの教室などを自分で開いてみたいが自宅ではできないから、こういったスペースがあるとありがたいというお声もあるとのこと。\n早坂さんは、結婚や出産などで社会から出ていってしまった女性・男性が、企業でキャリアを一から積んでいくのではなく、自分自身にキャリアを積み上げることで、自分を表現する場所、個を発信する場所が増えてほしいと考える。\n今後の展望は？\n早坂さんはお話ししてくれた。\n「利用していただく人の悩みに寄り添って相談に乗ることやお話を聞くことは継続していき、地域の方々とのイベントやワクワクするような仕掛けづくりをしていきたい。\n会社の掲げている「豊心穏暮」のように、豊かな心で穏やかに暮らせるサービスを提供していきたい。自分の興味を見つけられていない人や自分の考えを実現できることを知らない人などに我々を知ってもらい、思いを形にできるということを伝えていきたい。様々なONVO（穏暮）を作っていきたい。」と。",
+    "address": "さいたま市浦和区仲町1-10-7　尾張屋第一ビル5F",
+    "phone": "048-822-3341",
+    "contact_role": "代表",
+    "contact_person": "早坂　拓紀",
+    "basic_info": {
+      "住所": "さいたま市浦和区仲町1-10-7　尾張屋第一ビル5F",
+      "電話番号": "048-822-3341",
+      "代表": "早坂　拓紀",
+      "店長": "兵頭　裕子",
+      "HP/SNS": "ウェブサイト\nFacebook\nInstagram\nLINE"
+    },
+    "basic_info_links": {
+      "HP/SNS": [
+        "https://onvo.jp/",
+        "https://www.facebook.com/onvosalon/",
+        "https://www.instagram.com/onvosalon/",
+        "https://page.line.me/180tswyz"
+      ]
+    },
+    "link_urls": [
+      "https://onvo.jp/",
+      "https://www.facebook.com/onvosalon/",
+      "https://www.instagram.com/onvosalon/",
+      "https://page.line.me/180tswyz",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Fonvo-salon-urawa%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/asset-3-24-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/asset-1-25.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/asset-2-24.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3233.5409789730115!2d139.6508874122016!3d35.860257472415555!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018ea8240c94727%3A0xae29d68b42548802!2zT05WTyBTQUxPTiBVUkFXQe-8iOOCquODs-ODtOOCqeOCteODreODs-a1puWSjO-8iQ!5e0!3m2!1sja!2sjp!4v1737701881428!5m2!1sja!2sjp",
+    "geo_id": "5",
+    "ward": "浦和区",
+    "latitude": 35.86057,
+    "longitude": 139.65382,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "カフェ＆ギャラリー　空想庭園",
+    "list_label": "カフェ＆ギャラリー　空想庭園 \n 集うみんながアーティスト。福祉とアートの彩りカフェ",
+    "tagline": "集うみんながアーティスト。福祉とアートの彩りカフェ",
+    "fiscal_year": "令和3年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/kuusouteien/",
+    "body_text": "カフェ誕生への思い\n代表の内野さんは就労継続支援B型さをり工房(クオヴァデス)を「認知症、知的障害、精神障害を抱えている人も素晴らしい感性を持っている。アート活動によって自分を取り戻し、自信をもってほしい」という思いから立ち上げました。カフェはそこで働く方々への工賃を捻出するためにはじめたことがきっかけだそうです。\n暖かなカフェ\nカフェで働く２人のスタッフからもお話を伺いました。布小物を製作する作家さんとデザイナーさんです。彼女たちを含む、計５名のスタッフがカフェに温かさをもたらしています。自家焙煎の珈琲やケーキが売りで、毎日変わる手作りランチはお客様の健康を考えたメニューとなっています。スタッフの1人は「大人の給食」と表現しましたがピッタリです。近隣に住んでいる方と世間話をしたり、小さいお子さんがいる方への細かい気配りなど、優しい配慮が感じられます。\n印象的な代表内野さんの言葉\n「どんなに仕事が大変だと感じても、利用者さんから毎日うみ出される反物を見ていると幸せになります。それは常識にとらわれないキラキラしたもので、人間は対等でみんな一緒なんだと思います。」「強制することは何もありません。彼らの良さを引き出し、みんなで変わっていくことを目指しています」と言った内野さんのコメントに力強さを感じました。\nカフェを訪れたらぜひ工房へ\nさをり工房とカフェは歩いて５分くらいの場所にあります。カフェでお腹を満たしたら、是非工房ものぞいてみてください。\n色彩豊かな作品と利用者さんの作品をつくる真剣な表情をみることができます。刺激を受けて訪れた方も自分で何にかやりたくなるかもしれません。彼らの作品が製品に生まれ変わり販売もしています。ぜひ、手作りの肌触りを実感してみてください。",
+    "address": "さいたま市北区土呂町1丁目10-9",
+    "phone": "048-779-8265",
+    "contact_role": "代表",
+    "contact_person": "内野　千恵子",
+    "basic_info": {
+      "住所": "さいたま市北区土呂町1丁目10-9",
+      "電話番号": "048-779-8265",
+      "代表": "内野　千恵子",
+      "HP": "ウェブサイト\nFacebook\nInstagram"
+    },
+    "basic_info_links": {
+      "HP": [
+        "https://kuusouteien.or.jp/cafe/",
+        "https://www.facebook.com/cafekuusouteien/",
+        "https://www.instagram.com/kuusouteienquovadis/"
+      ]
+    },
+    "link_urls": [
+      "https://kuusouteien.or.jp/cafe/",
+      "https://www.facebook.com/cafekuusouteien/",
+      "https://www.instagram.com/kuusouteienquovadis/",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Fkuusouteien%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-1-14-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-2-13.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-3-14.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-4.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-5-415x415.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3230.638928829002!2d139.62678961220416!3d35.93133707239288!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018c7e4ebf25cbf%3A0x7ee44f6673ded55b!2z44Kr44OV44KnJuOCruODo-ODqeODquODvCDnqbrmg7Pluq3lnJI!5e0!3m2!1sja!2sjp!4v1737699894890!5m2!1sja!2sjp",
+    "geo_id": "6",
+    "ward": "北区",
+    "latitude": 35.93126,
+    "longitude": 139.62953,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "Cafe＆Gallery温々（ぬくぬく）",
+    "list_label": "Cafe＆Gallery温々（ぬくぬく） \n 温々には、古木のような大きな根っこが張っている",
+    "tagline": "温々には、古木のような大きな根っこが張っている",
+    "fiscal_year": "令和3年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/cafe-nukunuku/",
+    "body_text": "オープンのきっかけは？\nオーナーのご夫婦は陶芸家・写真家で以前から作家に寄り添ったギャラリーを作りたいと夢があり、作家の想いを実現できないかと考え、自宅の敷地にある納屋（当時築150年）を改装して1993年11月にギャラリーカフェをオープンした。当初、ギャラリーだけを考えていたが周りの知人から、「ギャラリーだけでは、ここは田舎なので人も来ないので、何か軽食もあった方が良いのでは？」と後押しされ、当時は、おにぎり、サンドイッチ、カレーなど提供できるようカフェも併設され、現在は､どんぶり３種、お昼の限定メニューなど充実した内容となっている。\nどんな場所なの？\nJR宇都宮線東大宮駅東口よりバスで15分。ファミリータウンで下車すると、見沼田んぼが広がる静かな田園風景の中にこんもりとした森に囲まれた昔ながらの民家にお店がある。香り豊かな珈琲に自然味豊かなパンやケーキ、地元野菜を使用した季節の食材中心のご飯は手作りにこだわり提供している。店内のテーブルや椅子、作家の作品を乗せる棚などはナチュラルな素材を基調として統一されている。築180年の温もりのある納屋の空間が木調の家具や土壁の内装が心地よく調和し静かでゆったりとした寛ぎの時間が過ごせます。定休日は毎週月曜日、駐車場スペースは20台。\nお店の名前の由来とギャラリースペース\n店内にあるギャラリースペースには陶芸作品を中心に木工、布小物など様々な作品を展示販売している。オーナー自ら足を運び作家と交流を深め作家の気持ちに常に寄り添いながら展示を進めている。一年を通じて個展や企画展を開催し人と人のつながりを大切にしたいという想いと誰にとっても温かい場所になってほしいとの願いを込めて、「ぬくとい」「ぬくい」という言葉から、『温々（ぬくぬく）』という言葉をお店の名前に決めたそうだ。\n敷地内のお店では\n広い雑木林の中にはカフェ＆ギャラリー温々の他にも昔ながらの食材を扱っているフェアトレードのお店「かぎろひ」、アロマリラクゼーションルームの「Amara」がある。温々で提供しているパンは天然酵母パンの「ざぱん」とスイーツは手作りお菓子「te.to.te」のケーキが楽しめる。四季を通じて見沼の景色の移ろいを眺めながらゆったりとした時間を過ごせます。お買い物やリフレッシュの機会にぜひ訪れてみてください。",
+    "address": "さいたま市見沼区丸ケ崎1856",
+    "phone": "048－686－3620",
+    "contact_role": "店長",
+    "contact_person": "萩原　和人",
+    "basic_info": {
+      "住所": "さいたま市見沼区丸ケ崎1856",
+      "電話番号": "048－686－3620",
+      "店長": "萩原　和人",
+      "HP/SNS": "ウェブサイト\nFacebook"
+    },
+    "basic_info_links": {
+      "HP/SNS": [
+        "https://cafe-nukunuku.com/home",
+        "https://www.facebook.com/cafenukunuku/"
+      ]
+    },
+    "link_urls": [
+      "https://cafe-nukunuku.com/home",
+      "https://www.facebook.com/cafenukunuku/",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Fcafe-nukunuku%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-1-11-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-2-10.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-3-11.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d206845.7872335536!2d139.33398580092117!3d35.89886244821779!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018c704a46d271b%3A0x837576ce48eb0fee!2z5rip44CF!5e0!3m2!1sja!2sjp!4v1737699284845!5m2!1sja!2sjp",
+    "geo_id": "7",
+    "ward": "見沼区",
+    "latitude": 35.96273,
+    "longitude": 139.65512,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "カフェギャラリー南風",
+    "list_label": "カフェギャラリー南風 \n 沖縄文化と未来を担う子どもたちを守る蔵の家",
+    "tagline": "沖縄文化と未来を担う子どもたちを守る蔵の家",
+    "fiscal_year": "令和3年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/minakaze/",
+    "body_text": "きっかけ\nオーナーのちづこさんは石垣島に生まれて那覇市で育つ。結婚を機に埼玉の大宮に住むようになる。そして、こちらで学習塾を開き、後に45教室の統括責任者となる。この時から子ども達と関わることがとても好きだった。ちづこさんのお父様は、人間国宝である金城次郎のコレクションを集められていた。お父様亡きあとはちづこさんが受け継ぎ、今もカフェギャラリー南風に保管されている。金城次郎の作品を所持していたこともあり、その他の作家の作品も鑑賞しながら購入できるギャラリーを始める。ギャラリーを始めるにあたりホッと一息できるリラックスできる空間を作るために、沖縄文化を取り入れた現在の大宮氷川店カフェギャラリー南風をオープン。その後、大宮区から中央区へ住居を引っ越す際、できれば古民家のような家を希望して今の場所と出会い与野本町店もオープンする。与野本町店では、お茶と沖縄料理をランチとして楽しみながら気軽に参加できる「カルチャー教室」も行われている。（手話、歌声、オカリナ、ウクレレ、コーラス、フレッシュ体操、編み物、詩を楽しむ会、スマホ、パソコン、三線、講談と笑いヨガなど）「カルチャー教室は、それぞれ行われている何かを楽しみに来るのはもちろんのことだが、このカルチャー教室で出会える人たち同士の交流の場にして誰かと会話する楽しさも楽しんでもらえたら嬉しい」とおっしゃっていた。\n子ども食堂と未来を紡ぐ\n2020年、コロナ禍になり大打撃を受ける。緊急事態宣言も出てお店を開くことができず、お店を閉めようとさえ考えた。しかし閉めるくらいなら、貧困に苦しむ子どもたちを支援したいと2020年7月から子ども食堂を始めた。（子ども食堂とは、月2回子どもたちへ無償でお弁当を提供する活動のこと）\nお弁当を作る人はボランティアで募り、地域の人や企業の方から食料品を提供されることによって、子ども食堂を続けていくことが今もなお、できている。また、この子ども食堂は多くの方に支援してもらえるよう「みな風子ども食堂サポーター会員」を募集し、運営を行なっている。子ども食堂は苦しい時にはじめたけれど、沢山の人が応援して支えてくれたからこそ今でも続けていけるのだという。互いに助け合い、多くの子ども達が笑顔に元気に過ごせる未来に、少しでも力になれる場所でいたいという想いが詰まった場所になった。",
+    "address": "さいたま市中央区本町東4-9-8",
+    "phone": "048-764-8850",
+    "contact_role": "代表",
+    "contact_person": "山田　ちづこ",
+    "basic_info": {
+      "住所": "さいたま市中央区本町東4-9-8",
+      "電話番号": "048-764-8850",
+      "代表": "山田　ちづこ",
+      "HP/SNS": "ウェブサイト"
+    },
+    "basic_info_links": {
+      "HP/SNS": [
+        "https://cafe-gallery-minakaze.jimdofree.com/"
+      ]
+    },
+    "link_urls": [
+      "https://cafe-gallery-minakaze.jimdofree.com/",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Fminakaze%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-1-15-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-2-14.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-3-15.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d51690.227500058114!2d139.58807391281258!3d35.931329977379384!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018c16ce10fa903%3A0x4b613ca207c72946!2z44Ku44Oj44Op44Oq44O85Y2X6aKo!5e0!3m2!1sja!2sjp!4v1737700366706!5m2!1sja!2sjp",
+    "geo_id": "8",
+    "ward": "中央区",
+    "latitude": 35.88551,
+    "longitude": 139.62044,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "カフェレストランBAOBAB",
+    "list_label": "カフェレストランBAOBAB \n アート作品を楽しみながら「安全・安心な地元食材」で「元気」を提供する秘密基地",
+    "tagline": "アート作品を楽しみながら「安全・安心な地元食材」で「元気」を提供する秘密基地",
+    "fiscal_year": "令和3年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/baobab/",
+    "body_text": "オープンのきっかけ、経緯は？\nオーナーの田中智康さん（48歳）は学生時代、記者を目指して勉強していたそうです。そんな彼が卒業後、生まれ育った桜区で、地域の方々に美味しいものを提供して喜んでもらいたいという思いにめざめてしまい、2002年4月20日お店を開店しました。そんな彼が、お子さんのアトピー性皮膚炎のつらさを家族で経験し、環境問題との親密な関係に気が付きよい食事を提供することにめざめ、日々安心・安全なメニューの開発に邁進、地元埼玉の小江戸黒豚や天然エゾ鹿、地元のおいしい野菜に出会い、おいしいメニューは進化し続けています。\nどんな場所なの？\n与野本町駅からバスで13分、徒歩3分のところにあるかわいい一軒家のお店。桜区では数少ない個人経営で、安心・安全で美味しい肉料理や有機栽培の珈琲豆にこだわった地域に愛されている素敵なお店です。\nアートとの繋がりと未来展望は？\nアートとの繋がりが特に強くなったのは2020年。鈴木知佐子（ちーちゃん）の熱い思いから「勝手に埼玉国際芸術祭」をバオバブさんで開催したのが始まりで「※バオバブファンド（ＢAＦ）」を設立。店内では常に、何人もの作家さんの作品を鑑賞することができます。これからもオーナー（田中さん）とちーちゃん（鈴木さん）が、がっちりタッグを組みながら、バオバブアートが前に進んでいくと確信しました。\n※ＢAＦは、作品の売上の10％をファンドに入れて、若手アーティストの支援に当てています。",
+    "address": "さいたま市桜区白鍬269-3",
+    "phone": "048-855-8021",
+    "contact_role": "代表",
+    "contact_person": "田中　智康",
+    "basic_info": {
+      "住所": "さいたま市桜区白鍬269-3",
+      "電話番号": "048-855-8021",
+      "代表": "田中　智康",
+      "HP/SNS": "https://tsuku2.jp/baobab\nhttp://www.baobab-lohas.com/\nFacebook\nInstagram"
+    },
+    "basic_info_links": {
+      "HP/SNS": [
+        "https://tsuku2.jp/baobab",
+        "http://www.baobab-lohas.com/",
+        "https://www.facebook.com/cafe.restaurant.baobab/",
+        "https://www.instagram.com/baobab_55/"
+      ]
+    },
+    "link_urls": [
+      "https://tsuku2.jp/baobab",
+      "http://www.baobab-lohas.com/",
+      "https://www.facebook.com/cafe.restaurant.baobab/",
+      "https://www.instagram.com/baobab_55/",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Fbaobab%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/asset-5-2-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/asset-4-2.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/asset-3-18.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/asset-2-17.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/asset-1-18.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d45806.6177913933!2d139.52501547671307!3d35.90588465339424!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018c3d3a0120227%3A0xfbcf9aadccaa02b1!2sBAOBAB!5e0!3m2!1sja!2sjp!4v1737700922868!5m2!1sja!2sjp",
+    "geo_id": "9",
+    "ward": "桜区",
+    "latitude": 35.87951,
+    "longitude": 139.60304,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "GAFU -gallery & space-",
+    "list_label": "GAFU -gallery & space- \n \"GAFU（画布）\"であなたの想いを実現へ",
+    "tagline": "\"GAFU（画布）\"であなたの想いを実現へ",
+    "fiscal_year": "令和5年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/gafu-gallery-space/",
+    "body_text": "オープンのきっかけ\nGAFUの名前は、義父がやっていた画布（油絵に使うカンバス）の工場跡地ということに由来している。義父が体調を崩し使われなくなった築９０年の工場。義父の想いが詰まっており、絵描きさんにとっても大切なこの建物をなんとかして残したい、また、地域の方に開かれた交流の場として活用していきたいという気持ちでオーナーの船岡さんが２年前、gallery & spaceにリノベーションした。地域のいろいろな才能のある方々に活用していただきたい、多世代の方々にこの場所に足を運んでいただきたい、という気持ちもあった。\nどんな場所なの\nもとは画布制作工場なのでフロアはおよそ1５ｍ×８ｍと広く、天井は高いうえにそり返った特殊な形をしている。土間のテーブル席と靴を脱いで上がる板張りのスペースがあり、子どもにも高齢世代にも快適だ。手前の隅には小さなステージ、奥には義理のお兄さんお手製の立派なスピーカーがあって贅沢に音楽を聴くこともできる。広いスペースを活用してマルシェを８組共同で開催したり、酷暑時のキッチンカーのイベント、調理をしながら食材の割合を考える算数教室などのユニークな活用実績がある。特定の人だけでなく、同時に様々な団体や多世代が利用可能とすることで新たなつながりもできている。\n担い手たちの想い\nオープンして２年、利用方法を日々模索していると船岡さん。情報発信は口コミと一部のSNSが中心で、利用したい方とは直接話をし、目的を伺った上で信頼できる方に利用してもらっている。あえて、利用方法や金額を明確に提示しないことで、利用時間に融通を利かせたりお手伝いをするなど、人のつながりや地域貢献を大事にしている。地域の他のスペースともつながり、高齢世代が外に出て集える場づくりなど、地域の方々が求めていることについて話し合うことも目指しているという。\n将来展望\n今後は、これまで行ってきたイベントのほかに誕生日パーティーや同窓会、音楽会などの予定もある。将来について船岡さんは「地域の方が交流できる場所は地域の方々が作っていくと思っているので、私がこうしたいという想いはありません。どうなっていくのか私自身が楽しみにしています。」とおしゃっていた。過日行われた盆栽のワークショップでは、講師の丁寧な指導のもと、幅広い年齢層の方が熱心に取り組み、ワークショップが行われていないスペースでは食事やカフェをゆっくり楽しむ人が和やかに過ごしていた。",
+    "address": "さいたま市南区別所3-21-4",
+    "phone": "",
+    "contact_role": "代表",
+    "contact_person": "船岡 まり子",
+    "basic_info": {
+      "住所": "さいたま市南区別所3-21-4",
+      "代表": "船岡 まり子",
+      "HP/SNS": "Instagram"
+    },
+    "basic_info_links": {
+      "HP/SNS": [
+        "https://www.instagram.com/gafu_rental_space/"
+      ]
+    },
+    "link_urls": [
+      "https://www.instagram.com/gafu_rental_space/",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Fgafu-gallery-space%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/10/アセット-1-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/10/アセット-3.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/10/アセット-2.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d103483.92326315587!2d139.50203484335935!3d35.85212729999999!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018ebe1ffb2d099%3A0xaa3f88ba0b2bf4fb!2sGAFU%20-gallery%26space-!5e0!3m2!1sja!2sjp!4v1737693313716!5m2!1sja!2sjp",
+    "geo_id": "10",
+    "ward": "南区",
+    "latitude": 35.85226,
+    "longitude": 139.64615,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "北浦和イッカイ",
+    "list_label": "北浦和イッカイ \n 商店街の一階で、お試しに一回",
+    "tagline": "商店街の一階で、お試しに一回",
+    "fiscal_year": "令和7年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/ikkai/",
+    "body_text": "どんな場所？\n「北浦和イッカイ」は北浦和駅西口の「北浦和西口銀座商店街」の通りに面した3階戸建ての1階にあります。レンタルスペースというかたちで運営する「シェアキッチン＆コミュニティスペース」として2023年6月にスタートしました。「イッカイ」という心に残る名前には、スペースが建物の「一階」、何かにチャレンジする気持ちでお試しに「一回」、そして「一堂に会する」場、という3つの意図が込められているとのこと。「イカ」が描かれた可愛くて素朴な看板が和みます。\nレンタルスペースは、カーテンで仕切ることが可能な、テーブルと椅子のリビングルームのようなお部屋と小上がりの六畳の和室の二つに分かれていて、明るく気持ちのよい空間となっています。通りから催し物が目に入り易く訴求力もあり、気軽に立ち寄れる点も大きな魅力です。特筆すべきは充実したキッチンスペースが併設されていて、このキッチンで飲食業許可と菓子製造業許可が取得できます。オープン以来、様々な催事で地域を彩り、人々にフレッシュな楽しみを提供し続けています。\nオープンのきっかけ、経緯は？\nこの「北浦和イッカイ」の前身は、なんと猪瀬さんのご家族が住んでいた戸建てのガレージだったそう！夫の猪瀬浩平さん(文化人類学者)がこのガレージを使って様々な催し物等を行い、「住み開き」のようなかたちで活用していたのですが、早紀さんは商店街の業態の変化に伴い、人とのコミュニケーションの場が減り、活気も薄れてきたように感じていたとのこと。何かしら地域への貢献をしたいという想いから育児の合間をぬって奮闘、埼玉県の社会課題解決のための助成を得て、自宅ガレージをリノベーション、新たな拠点「北浦和イッカイ」を実現させたということでした。\n今までに、シェアキッチンを活用した「子ども食堂」の展開や、米粉や生米から作った食品、新鮮野菜の手作り弁当の提供など、安心おいしい優しい「食」を通じた人々の笑顔が生まれています。また、シェアスペースでは作家の作品発表や販売、様々なワークショップ、他にも着付け教室、映画上映会等々魅力的な場として、利用のアイデアは増々広がりを見せています。\n今後の展望は\n「こだわりのある人に憧れがあり、持ち込まれた企画を応援できることにワクワクします。自分自身も新しい体験をしていきたい！今後は定期的な利用者も増やしながら、運営の安定化を図りたい。他所の催事チラシの配架も行っているが、それによってそれぞれの活動が伝播し繋がっていくのは、発信する場としてもうれしい。」と猪瀬さんは目を輝かせる。また近隣には埼玉県立近代美術館や北浦和公園もあり、恵まれた環境を活かして美術館や公園、商店街を巡って楽しめるような流れにつながれば、という意気込みも語ってくださいました。",
+    "address": "",
+    "phone": "",
+    "contact_role": "所在地",
+    "contact_person": "さいたま市浦和区常盤10-9-15",
+    "basic_info": {
+      "所在地": "さいたま市浦和区常盤10-9-15",
+      "代表": "猪瀬早紀",
+      "HP/SNS": "Instagram"
+    },
+    "basic_info_links": {
+      "HP/SNS": [
+        "https://www.instagram.com/kitaurawa.ikkai/"
+      ]
+    },
+    "link_urls": [
+      "https://www.instagram.com/kitaurawa.ikkai/",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Fikkai%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2026/03/3-1ikkai-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2026/03/3-2ikkai-415x553.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2026/03/3-3ikkai-415x553.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3233.080192022762!2d139.63903137555982!3d35.87155161949618!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018c1002e0b24a3%3A0x8d3946ca0faa27f9!2z5YyX5rWm5ZKM44Kk44OD44Kr44Kk!5e0!3m2!1sja!2sjp!4v1774674715135!5m2!1sja!2sjp",
+    "geo_id": "11",
+    "ward": "浦和区",
+    "latitude": 35.87144,
+    "longitude": 139.64122,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "ギャラリー＆カフェ　エソラⅡ",
+    "list_label": "ギャラリー＆カフェ　エソラⅡ \n 伝説の文化サロンを見沼で引き継ぐ",
+    "tagline": "伝説の文化サロンを見沼で引き継ぐ",
+    "fiscal_year": "令和4年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/esora2/",
+    "body_text": "花々に囲まれた清楚な空間\n大宮駅東口からバスで約15分。芝川や産業道路をこえ、住宅街と公営団地の間にギャラリー&カフェ エソラIIがある。バスや自動車が行き交う道に面するが、バラに囲まれた白い建物は、別の時間が流れているよう。お店の窓から眺めることができる庭は、毎年参加している見沼区主催のオープンガーデンでも好評だ。５月には優美に咲き誇るバラの花も楽しむことができるお店となっている。このギャラリーはどのように始まったのだろう。オーナーにお話を伺った。\nギャラリーを始めたきっかけ\n定年も近くなった頃、次は何をしようかと考えていた。学生時代は美術部で油絵をやっていた。先輩が国立市でエソラというサロンをしていて、文化人のたまりばになっていた。その先輩がやっていたサロンは残念ながらなくなってしまったが、そういったことをしようと思った。ちょうど妻の実家の土地があったこともあり、この場所でギャラリーを７年ほど前に始めた。\nギャラリーをするにあたってのこだわり\nこの建物の設計は工務店に依頼したが、壁面画が最大限にとれるようにこだわった。コンサートなどもできるような設計にしてある。　\n建材や装飾も可能な範囲でこだわった、とオーナーが語る空間は天井は高く、カフェスペース、展示スペースも広々。また、奥様がセレクトした素敵な文具や小物も置かれている。　\n作品鑑賞、友人とのおしゃべり、ひとりの時間…それぞれが自由な時間を過ごすことができる。展示に捉われないマルチな空間を目指しているそう。\nこれからチャレンジしたいこと\n地元の郷土史グループとのお付き合いでカルチャー講座的な企画もしている。また、地域包括センターからの依頼もあって3月にはおしゃべりカフェを開催。地域へも貢献していけたらと思う。",
+    "address": "さいたま市見沼区東新井588-1",
+    "phone": "070-4094-6068",
+    "contact_role": "代表",
+    "contact_person": "室越 光夫",
+    "basic_info": {
+      "住所": "さいたま市見沼区東新井588-1",
+      "電話番号": "070-4094-6068",
+      "代表": "室越 光夫",
+      "HP/SNS": "Instagram"
+    },
+    "basic_info_links": {
+      "HP/SNS": [
+        "https://www.instagram.com/gallery_cafe_esora2/"
+      ]
+    },
+    "link_urls": [
+      "https://www.instagram.com/gallery_cafe_esora2/",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Fesora2%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-1-1-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-2-1.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-3-1.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3231.5439942008443!2d139.65805927663837!3d35.909182472514594!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018c0f000e15973%3A0x6dfd75e6de24ec0e!2z44Ko44K944Op4oWh!5e0!3m2!1sja!2sjp!4v1737696275323!5m2!1sja!2sjp",
+    "geo_id": "12",
+    "ward": "見沼区",
+    "latitude": 35.90908,
+    "longitude": 139.66017,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "ギャラリー樟楠（kusu kusu）",
+    "list_label": "ギャラリー樟楠（kusu kusu） \n 「クスっ」っと笑ってしまう!こだわりの空間",
+    "tagline": "「クスっ」っと笑ってしまう!こだわりの空間",
+    "fiscal_year": "令和4年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/kusu-kusu/",
+    "body_text": "木造のおしゃれな空間\nさいたま新都心駅から歩いて７分ほど。レストラン、お菓子屋さん、そしてギャラリースペースが隣接しているお洒落な雰囲気が漂うエリア、アルピーノ村がある。\nアルピーノ村には絵画を扱う「銀花ギャラリー」と、陶器や工芸品などを扱う「ギャラリー樟楠」 があり、今回紹介するギャラリー樟楠は120年前に建てられた古民家だ。風情ある庭をくぐって中に入ると、陶器や但馬木彫といった工芸品が落ち着いた空間に所狭しと広がり、訪問者を迎えてくれる。\nじっくりと作品と向き合うことで感性を磨く\n展示作家やアーティストへのこだわりについて、オーナーの阪健志さんにお話しを伺った。「やきものは、まずは自分で買って使ってみる。1ヶ月くらい経っても使い続けたいと感じる作品を選ぶようにしている」と、ご自身が作品と向き合う時間をつくるそう。自分がいいと思ったものだけを取り扱うこだわりが伝わってくる。実は、釣りの腕前も一流の阪さん。「釣りをしていると自然と向き合う感覚になり、アイディアが生まれる」と言う。物事とじっくり向き合い感性を磨いてきた阪さんが選ぶからこそ、ここでは特別な作品に出会うことができる。\n高尚な「ギャラリー」ではなく親しみやすい空間を\n阪さん曰く、「ギャラリー」に来るお客さまは、一回りしてすぐに帰ってしまうケースが多いそう。例えば子連れのお客さまの第一声は「触っちゃダメよ！」となる。でもそうではなく、作品に触れなさそうな人たちにぜひ手に取ってもらいたいと言う。阪さんは、子どもが来たら「どの作品が一番好き」かを聞き、ゆっくり観るきっかけをつくる。ギャラリー樟楠に来たら、作品を手に取って観てほしい。何よりリラックスしてほしい。という強いこだわりがある。そうでなければ、本当の作品の良さは伝わりにくい。思わず「クスっ」と笑ってしまうような空間をつくりたいと言う。\nこれからのチャレンジとさいたま市の芸術祭について\nこれからチャレンジしたいことについて「アルピーノ村では記念日にレストランで食事して、ギャラリーで記念に食器を購入する方もいる。そういったお客さまの人生の節目に関わる存在となれるよう、各店舗のつながりをもっと強化したい」と言う。地元で芸術祭を開催することについては、「芸術祭を実施することは賛成。市民がアートに親しむきっかけになってほしい」と期待する一方で、「市民にもっと根付かせてほしい」と課題も。じっくり地域に根付いてきたギャラリー樟楠と阪さん。日常の芸術がギュっと詰まったアルピーノ村とギャラリー樟楠。ぜひ1度訪れて、作品を手にとってみて欲しい。",
+    "address": "さいたま市大宮区北袋町1-147",
+    "phone": "048-641-9156",
+    "contact_role": "オーナー",
+    "contact_person": "阪 健志",
+    "basic_info": {
+      "住所": "さいたま市大宮区北袋町1-147",
+      "電話番号": "048-641-9156",
+      "オーナー": "阪 健志",
+      "HP/SNS": "ウェブサイト"
+    },
+    "basic_info_links": {
+      "HP/SNS": [
+        "http://alpinoginka.com/"
+      ]
+    },
+    "link_urls": [
+      "http://alpinoginka.com/",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Fkusu-kusu%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-1-2-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-2-2.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-3-2.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3232.0906940801196!2d139.63730027663797!3d35.89579437251879!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018c108a76cbdff%3A0xee4405dd07a3d0ac!2z44Ku44Oj44Op44Oq44O85qif5qWg!5e0!3m2!1sja!2sjp!4v1737696428557!5m2!1sja!2sjp",
+    "geo_id": "13",
+    "ward": "大宮区",
+    "latitude": 35.89579,
+    "longitude": 139.63977,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "ギャラリー健",
+    "list_label": "ギャラリー健 \n 創作好きな2歳～90歳の方々が楽しく学んでいる彫刻工房・陶芸工房・絵画教室に併設された「ギャラリー」",
+    "tagline": "創作好きな2歳～90歳の方々が楽しく学んでいる彫刻工房・陶芸工房・絵画教室に併設された「ギャラリー」",
+    "fiscal_year": "令和4年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/galleryken/",
+    "body_text": "オープンのきっかけ、経緯は？\n「ギャラリー健」は、2008年に浦和造形研究所の１階の一部に開設。\n浦和造形研究所の創始者である彫刻家　金子健二の遺作展を行い、その後も金子健二に関わったアーティストたちの個展やグループ展を開くために展示施設を整備したことに始まる。\nギャラリーの開設以来、定期的に企画展を開催するとともに、貸しギャラリーとして運営している。名称は金子健二の一文字「健」をとった。\nどんな場所なの？\n浦和造形研究所は1976年に創設された美術教室であり、JR埼京線中浦和駅西口から徒歩１分の場所にある。\n現在は、子供造形教室や大人のための絵画・陶芸・彫刻教室などを運営している。\nさいたま国際芸術祭でもアーティストとして活動し、造形作家としても活躍している「寿の色」さんが、小学生の頃からこちらの造形教室で学んでいた。\n通ってきている方たちがギャラリーで、個展やグループ展を開ける環境も魅力の１つ。\nアートとの繋がりと未来展望は？\nギャラリー健は、定期開催の企画展以外の期間は貸しギャラリーの形態で運営している。\n市民と地元の美術家が継続的に関わり続け、共に成長していけるプロジェクトとして実施されている「美術と街巡り・浦和」の会場の一つとして参加している。\n定期開催の企画展としては、各教室の生徒さんや講師の方々の個展やグループ展、テーマ展を開催している。\n今後のギャラリー展開については、造形教室の魅力をベースに、より一層地域から愛されるっ場所として継続していくことを意識している。",
+    "address": "さいたま市南区関1-1-3",
+    "phone": "048-862-4464",
+    "contact_role": "代表",
+    "contact_person": "金子 希望",
+    "basic_info": {
+      "住所": "さいたま市南区関1-1-3",
+      "電話番号": "048-862-4464",
+      "代表": "金子 希望",
+      "HP/SNS": "ウェブサイト"
+    },
+    "basic_info_links": {
+      "HP/SNS": [
+        "https://galleryken.com"
+      ]
+    },
+    "link_urls": [
+      "https://galleryken.com",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Fgalleryken%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-1-4-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-2-3.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-3-4.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3233.837898642866!2d139.6349498122014!3d35.85297817241782!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018ea77b4cdc7c9%3A0x93e0768eb5e80bed!2z44Ku44Oj44Op44Oq44O85YGl!5e0!3m2!1sja!2sjp!4v1737697581246!5m2!1sja!2sjp",
+    "geo_id": "14",
+    "ward": "南区",
+    "latitude": 35.85276,
+    "longitude": 139.63739,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "Gallery Pepin",
+    "list_label": "Gallery Pepin \n 「アートが日常にある」を叶えるギャラリー",
+    "tagline": "「アートが日常にある」を叶えるギャラリー",
+    "fiscal_year": "令和3年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/gallery-pepin/",
+    "body_text": "ギャラリーを浦和で開いた理由\n小林さんは、大学生の頃から画廊に勤める「ギャラリスト」であった。そのため、いずれは地元の埼玉でギャラリーを開きたいと思っていた。「都内でなければ観られない」ものを埼玉でも楽しめるようにしたい、という思いもあった。その夢をPepin を開くことによって実現させた。\n埼玉の中でも東浦和にギャラリーを開いたのは、自宅が位置する身近な地であることと、浦和はアートで繋がれる場所が数多く、しかもそれが広がっている土地柄だということが大きな理由だ。\nどのような活動をしているのか\n「質は高く、敷居は低く」をモットーに、日常にアートがある場を実現している。アーティストはもちろん、さいたま国際芸術祭のサポーターや地元の子どもたちも来廊する。また、ギャラリー外でも他のお店や団体などと提携して、「アーティストとはなそう」をはじめとした異業種・異分野交流会なども企画実施している。\nアーティストの生き方を多くの人に知ってもらい、アーティストが胸を張って生きられるような世の中を目指している。\nアートとは\n「人の営み」であると考えている。アートとは、アーティストのものに限らず、全ての人のもの。一般的な「アートはおしゃれなもの」というイメージとは少し違う。\nアートは、切りとり方や見方によって感じ方が異なるものであり、技術などを観る美術品とは区別されるものであると考える。\nどのような場・施設があると良いか\n街を知るためには、まずその街の人々を知る必要があり、人々と接する機会があるとよい。\n例えば、「今週はこの人がいます」というように、その場所に足を運べば、いつでもその人（アーティスト）と話せる場所があるとよい。Pepinはそれを目指している。\nまた、旧中山道にある設備機器の側面を活用した子どもたちの絵画作品の展示がとても良いと感じているが、その取り組みを知らない人に、その存在や目的が周知されるきっかけがあればよいと考えている。",
+    "address": "さいたま市緑区大牧1470-10",
+    "phone": "090-9955-4275",
+    "contact_role": "代表",
+    "contact_person": "小林　優佳",
+    "basic_info": {
+      "住所": "さいたま市緑区大牧1470-10",
+      "電話番号": "090-9955-4275",
+      "代表": "小林　優佳",
+      "HP/SNS": "ウェブサイト\nFacebook\nInstagram\nX"
+    },
+    "basic_info_links": {
+      "HP/SNS": [
+        "http://gallery-pepin.com/",
+        "https://www.facebook.com/gallerypepin/",
+        "https://www.instagram.com/gallery_pepin/",
+        "https://twitter.com/GalleryPepin"
+      ]
+    },
+    "link_urls": [
+      "http://gallery-pepin.com/",
+      "https://www.facebook.com/gallerypepin/",
+      "https://www.instagram.com/gallery_pepin/",
+      "https://twitter.com/GalleryPepin",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Fgallery-pepin%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/asset-1-20-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/asset-2-19-415x590.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3232.8637336793904!2d139.69827591220215!3d35.87685607241008!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x601895576503bbff%3A0x1c7ed2638550ac32!2sGallery%20Pepin!5e0!3m2!1sja!2sjp!4v1737701236106!5m2!1sja!2sjp",
+    "geo_id": "15",
+    "ward": "緑区",
+    "latitude": 35.87677,
+    "longitude": 139.70084,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "木力館",
+    "list_label": "木力館 \n 岩槻にある木の博物館、木の情報発信基",
+    "tagline": "岩槻にある木の博物館、木の情報発信基",
+    "fiscal_year": "令和4年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/wood-power/",
+    "body_text": "木力館を開設した背景は？\n木力館は日本でも珍しい木を専門とする博物館。ポプラの丸太を大黒柱にした86坪の天然木建築の館で、伝統的な工法で建築されている。木がふんだんに使われ、本物の木が生み出す香りと温もりにあふれている。\n半世紀を木材とともに過ごした館長は、日本における森林崩壊や林業の衰退、健康に好ましくない住宅の増加などの問題の根っこに、人々が木や自然素材のすばらしさを余りにも知らない、知る機会が少ないということに気付き、木や自然素材、森林や環境問題について情報を発信し、木を実際に体験できる場が必要だと考えた。\n五感で体感することの大切さ\n木についての知識を提供する館内では、実物の木片を実際に見て、触って、香りをかいで特徴を知ることができる。\n「言葉や文章だけでは、本当に理解してもらうことはできません。学びだけでなく、五感で感じて、特に“木の香り”を体感して貰うことが大切なのです。五感は忘れない、木の香りが体の記憶として残るのです。」\n館長は、特にこどもの学びの場を大切に考えている。環境はこどもの将来にとってとても大切なこと。そして、大人も含めて木を知り、木の良さをリアルに体感できる場として、木力館が存在している。\n精力的な活動\n岩槻の開智学園では、17年間毎年、小学4年生を対象に木の授業を行い、実際に製材の体験を通して“木の香り”を体感する機会を創っている。\nまた、さいたま市、越谷市、春日部市の公立・認可保育園305箇所に、館長が手作りした埼玉県産桧の積み木を寄贈している。なぜ積み木を寄贈するのだろうか？\n「地元県産の木の魅力と森林の必要性などに関心持ってほしいのです。豊かな森林によって美味しい空気、水などがいただけるありがたみを感じてほしいと思います。」\n地道な活動と環境問題への取り組みの貢献に対して、それぞれの市から感謝状が贈られている。\n地域との繋がり\n木力館の開放的な二階スペースでコンサートを開催したり、木力館で夏祭りを企画し、小屋組みを組んで餅まきを行ったりと、地域での活動も盛んだ。また、地元岩槻での他のアート拠点との繋がりも今後期待されている。\n「日本の木のことを多くの日本人に知ってもらいたい。生き物は自然に逆らって生きることはできません。人も同じく、自然と共生することが大切だと思うのです。自然は噓をつかない。これは私（おやじ）が体験した結論です。」\n「多くの人に木力館を訪れていただき、木に触れて、木のことをもっと知ってほしいと思います。」\n館長の挑戦は続く。",
+    "address": "さいたま市岩槻区新方須賀558-2",
+    "phone": "048-799-1560",
+    "contact_role": "木力館 館長",
+    "contact_person": "大槻 忠男",
+    "basic_info": {
+      "住所": "さいたま市岩槻区新方須賀558-2",
+      "電話番号": "048-799-1560",
+      "木力館 館長": "大槻 忠男",
+      "HP/SNS": "ウェブサイト\nInstagram\nX"
+    },
+    "basic_info_links": {
+      "HP/SNS": [
+        "https://www.wood-power.com",
+        "https://www.instagram.com/kiryokukan/?hl=ja",
+        "https://x.com/kiryokukan"
+      ]
+    },
+    "link_urls": [
+      "https://www.wood-power.com",
+      "https://www.instagram.com/kiryokukan/?hl=ja",
+      "https://x.com/kiryokukan",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Fwood-power%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/10/アセット-1-6-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/10/アセット-2-6.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3230.6895370903!2d139.73499447663917!3d35.93009857250797!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018be55e080c7b7%3A0x969580d907b05705!2z5pyo5Yqb6aSo!5e0!3m2!1sja!2sjp!4v1737696029440!5m2!1sja!2sjp",
+    "geo_id": "16",
+    "ward": "岩槻区",
+    "latitude": 35.9298,
+    "longitude": 139.7373,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "靴下と生活雑貨のお店「さきっちょ」",
+    "list_label": "靴下と生活雑貨のお店「さきっちょ」 \n 足元を見つめ直すきっかけを与える交流の場",
+    "tagline": "足元を見つめ直すきっかけを与える交流の場",
+    "fiscal_year": "令和3年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/sakitcho/",
+    "body_text": "オープンのきっかけ、経緯 \n北国で育ったことから歩くことに慎重であり、日頃から足元に対して関心を抱いていた。そこからデザインの仕事や靴下に関するネットショップをやっていく中で、お客様に直接手に取って納得して買ってもらいたいという思いでお店を開いた。浦和にお店を開いたのは、父親と息子がサッカーの試合を頻繁に見に行き始めたことがきっかけ、とのこと。\nどのような活動をしているのか \n１階が靴下や雑貨のセレクトショップ、２階が手作り靴の専門学校とギャラリースペースとなっており、「歩く」をひとつの目的としたサービスを提供している。\nギャラリースペースは、地域の方が自由に利用できることを目的に貸し出している。建物の外観が船の舳先に似ていることから、借りる人たちの活動を後押しする門出の場のようなストーリー性のある空間となっている。\nどのような場・施設があるとよいか \n場所を問わず移動販売を展開するまち。お店同士が連携し、多様化した移動販売を行うことでにぎやかなまちになる。そういったことからサッカーとしての印象に限らず、まちにアートが溶け込むにぎやかな場所になるのではないか。\n今後の展望は？ \nさきっちょでは靴下の販売に加え、足に関するサービスを行っている。現在は自分だけのオリジナルの靴を作れる手作り靴のサービスを予定している。雑貨の販売だけに限らず、足元を見つめ直すきっかけがたくさん置いてあるお店にしていきたい、とのこと。",
+    "address": "さいたま市浦和区岸町4丁目20-15 レインボーつきのみや1F",
+    "phone": "048-789-7640",
+    "contact_role": "代表",
+    "contact_person": "越野　陽子",
+    "basic_info": {
+      "住所": "さいたま市浦和区岸町4丁目20-15 レインボーつきのみや1F",
+      "電話番号": "048-789-7640",
+      "代表": "越野　陽子",
+      "HP/SNS": "ウェブサイト\nFacebook\nIinstagram"
+    },
+    "basic_info_links": {
+      "HP/SNS": [
+        "https://www.sakitcho.com",
+        "https://www.facebook.com/55sakitcho/",
+        "https://www.instagram.com/sakitcho_socks/"
+      ]
+    },
+    "link_urls": [
+      "https://www.sakitcho.com",
+      "https://www.facebook.com/55sakitcho/",
+      "https://www.instagram.com/sakitcho_socks/",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Fsakitcho%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/asset-1-21-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/asset-2-20-415x590.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/asset-3-20.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3233.7654489067563!2d139.65250721220158!3d35.85475447241717!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018ea8686c9d1f3%3A0xcfa436888140ba24!2z6Z205LiL44Go55Sf5rS76ZuR6LKo44Gu44GK5bqXIOOBleOBjeOBo-OBoeOChw!5e0!3m2!1sja!2sjp!4v1737701369624!5m2!1sja!2sjp",
+    "geo_id": "17",
+    "ward": "浦和区",
+    "latitude": 35.8544,
+    "longitude": 139.65509,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "クラフト＆ギャラリー風画",
+    "list_label": "クラフト＆ギャラリー風画 \n 縄文土器の奥深さを感じ、若きアーティストが活躍できる場所",
+    "tagline": "縄文土器の奥深さを感じ、若きアーティストが活躍できる場所",
+    "fiscal_year": "令和3年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/fuga/",
+    "body_text": "外観・内装\nお店の周辺には大宮花の丘農林公苑がそばにあり、自然多いところにお店が佇んでいる。ここはオーナーである井出さんのご自宅でもある。遠方から来店できるように、駐車場は５台停めることが可能。\nお店の中に入ると明るく、木の温もりを感じる空間が広がっていた。入り口を背にして左側には、作家さんが制作している作品が販売されている。どの作品も手作り。ここの場所に訪れたときには、来た人の心に刺さる「何か」が反応して、あなたにピッタリなものと巡り合えるかもしれない。\n縄文土器との出会い\n井出さんが43歳の時に、初めて遺跡の発掘調査に参加して「縄文土器」と出会った。それまでは、ご自身も元々水彩画を描く画家として活躍。（カフェスペースの壁に展示中）\n初めて参加した発掘調査で、縄文土器の材料である「粘土」の奥深さと、縄文土器を制作研究。\n研究を続けていくことで見えてくる縄文時代の文化と時代背景も判明してくることがわかり、縄文土器の面白さと探求する楽しさを感じられた井出さんは、考古学を学ばれた。\n縄文土器の奥深さ\n井出さんは、地域を埼玉に絞り縄文土器を研究することになる。焼き上がり加減や焼いている時に生じる焼き割れを比較するために漏水実験を行って分析し、合わせて煮沸実験も行い耐久性も調査した。\nこれらの研究を進めることによって、土器の成り立ちだけを知るのではなく、縄文時代の人たちが過ごしてきた生活行動も知ることにつながることがわかった。\nそしてお店にあるギャラリースペースでは、毎年夏に復元制作した縄文土器の展覧会を開催している。\n人と人とのつながり\nカフェスペースでは、ドリンクも飲むことができて、さらに貸しギャラリーも行っている。\nこちらのギャラリーは、「１度も個展を開いたことがない作家さん、駆け出しの作家さんにとって作家さんの作品を活かし生きる場所として応援していきたい」と話されていた。作家さん、来店されたお客様、そして井出さんご夫婦。それぞれの「ご縁」がめぐり巡って繋がれていく場所。人と人との「つながり」を感じる場所だからこそ、心温まる空間がこのクラフト＆ギャラリー風画にあった。",
+    "address": "さいたま市西区内野本郷971-6",
+    "phone": "048-625-0521",
+    "contact_role": "代表",
+    "contact_person": "井出　政男",
+    "basic_info": {
+      "住所": "さいたま市西区内野本郷971-6",
+      "電話番号": "048-625-0521",
+      "代表": "井出　政男"
+    },
+    "basic_info_links": {},
+    "link_urls": [
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Ffuga%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-1-10-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-2-9.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-3-10.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3230.3528707895384!2d139.58891751220426!3d35.9383368723908!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018c579e81ebd83%3A0xedd9f2f9a1d5711a!2z44Kv44Op44OV44OI77yG44Ku44Oj44Op44Oq44O86aKo55S7!5e0!3m2!1sja!2sjp!4v1737699049834!5m2!1sja!2sjp",
+    "geo_id": "18",
+    "ward": "西区",
+    "latitude": 35.93843,
+    "longitude": 139.59181,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "コバルト画房",
+    "list_label": "コバルト画房 \n 戦後まもなくから続く老舗の画材販売店",
+    "tagline": "戦後まもなくから続く老舗の画材販売店",
+    "fiscal_year": "令和6年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/cobalt/",
+    "body_text": "どんな場所？\n浦和駅から徒歩10分、裏門通り沿いに位置する歴史ある工房。画材や額縁の販売と、絵画・銅版画教室を実施している。コバルト画房には、銅版画に欠かせないプレス機が３台あり、そのうち１台は店主の岸本さん自ら設計し、製作したものだそう。店内に入ると、画材や額縁の販売スペースがあり、その奥にはプレス機のある岸本さんの作業場がある。２階は絵画教室などで使用するアトリエスペースになっており、自然光が入る造りになっていた。普段はテレビ取材が来ても断っているそうだが、この度の調査を快諾してくださった。\n歴史\nコバルト画房はもともと岸本さんの奥様のご祖父様が創業された。ご祖父様は新聞記者だったが、戦争中は工兵として技術的作業に携わった。絵の具や画材のメーカーとして有名なホルベインの創業者と戦友になった縁で、ホルベインの絵の具を仕入れ、販売するようになったのが始まりである。コバルト画房は1948年に法人化し、本格的に営業されるようになったが、戦後まもなくは浦和駅東口方面で、空き箱の上に絵の具などを置いて販売していたそう。さらに、ものづくりが好きだったご祖父様は、額縁や画材を作って販売するようになったそうだ。\n店主の岸本さん\n岸本さんは、東京藝術大学で日本画を学んだ後、大学院で銅版画を始めた。コバルト画房で銅版画の製制や店の経営をするとともに、自ら銅版画教室の講師も行っている。絵画教室は岸本さんが始めた。教室を始めた頃は学校を卒業した人、若い年代の人が訪れ、プレス機をはじめとしたコバルト画房の道具を使って作品を制作していた。現在は高齢者や子育てを終えた人の参加が多いそうだ。\n趣味は映画を見ること。作品づくりにおいても、刺激を受けることが重要で、映画はそれにぴったりだそう。テーブルには多くの映画のパンフレットがあった。作業中はコーヒーを飲んで音楽を聴くことが多く、作品を作るのにかかる期間は短くて1～2週間、長くて半年ほどかかるそうだ。これからの展望について尋ねると、お店をあるがままに、できるだけ長く続けていきたいと話してくださった。",
+    "address": "さいたま市浦和区仲町2-16-15",
+    "phone": "",
+    "contact_role": "代表",
+    "contact_person": "岸本 望",
+    "basic_info": {
+      "住所": "さいたま市浦和区仲町2-16-15",
+      "代表": "岸本 望",
+      "HP/SNS": "HP"
+    },
+    "basic_info_links": {
+      "HP/SNS": [
+        "https://cobalt-art.wixsite.com/index/"
+      ]
+    },
+    "link_urls": [
+      "https://cobalt-art.wixsite.com/index/",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Fcobalt%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2025/04/IMG_1428-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2025/04/IMG_0447-2-415x312.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2025/04/IMG_0449-415x295.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3233.589949345982!2d139.650421!3d35.859057!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018ea8007a13ebb%3A0x3b49537ac95c7fc5!2z44Kz44OQ44Or44OI55S75oi_!5e0!3m2!1sja!2sjp!4v1744458417992!5m2!1sja!2sjp",
+    "geo_id": "19",
+    "ward": "浦和区",
+    "latitude": 35.8586,
+    "longitude": 139.65074,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "コンドウハウス",
+    "list_label": "コンドウハウス \n 『コミュニティ』の中で生きるための『みんなの居場所』づくり",
+    "tagline": "『コミュニティ』の中で生きるための『みんなの居場所』づくり",
+    "fiscal_year": "令和5年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/kondohouse-kon-kitchen/",
+    "body_text": "きっかけはパンデミック期の『みつめなおし』\n浦和で生まれ育った太田好泰（よしやす）さんは、３０～４０代を障害者アートのＮＰＯで働き、その後５０代は茨城県でタイ料理店を経営した。\nさいたまに戻ってきた時、世の中は新型コロナウイルスが蔓延をはじめ世界的にもロックダウン、自宅にいることが多くなった時期・・・。\nその時、今までの職業で抱えていた疑問が再び思い浮かんだ。障害者たちの親亡き後の『住まい方』、在日外国人の『住まい方』、ニュースで特集されていたシングル・マザーや、賃貸物件を借りづらい高齢者の『住まい方』はどうなっていくのだろう？\n『住まいの問題』を考えたい、と思い始めたタイミングで、埼玉未来大学のシニアの起業を応援する『地域創造科・地域ビジネスコース』１期生の募集を見かけ、この課題に向き合いたいと学ぶことに。\nまた、妹の連れ合いの実家が空き家となり、それを活かして、『コミュニティの中で生きる』ための『みんなの居場所』を提供できるのではないか？との想いで、2022年３月ＮＰＯ法人新しい住まい方研究所を設立。翌４月にコミュニティ・カフェ『コンドウハウス』をオープンした。\nコミュニティの中に入るきっかけは、『食』\n『みんなの居場所』の基地としたいコンドウハウスでは、タイ料理を楽しめるカフェ＆レストラン『Ｋoｎキッチン』をはじめ、三室・山崎子ども食堂、シニアの食堂、子どもの発達サポートサロン、大古里サロン（高齢者の相談室）、介護者カフェ三室など、タイ料理の腕を活かしながら、ボランティアさんの協力のもと活動している。\nしかし、目指すところはあくまで『みんなの居場所』。コミュニティにつながるきっかけを『食』としているが、『食』を入口に地域の人たちがどのようにコミュニケーションを取り、どのような化学反応をしていくのか、期待している。\nじわじわ感をもって、丁寧に\nスウェーデン・デンマークで生まれた『コレクティブハウジング』（シェアハウスよりプライバシーを確保しつつも、共同の食堂やリビングがあり、その建物に住む『みんなが当事者』となって住まうスタイル）にならい、この三室地域のコミュニティの居場所として、高齢者も障害者も、誰もが主体者として暮らすことのできるコレクティブな場所を目指している。そのため、プライバシーやデリケートな問題に直面することも考えられるが、アートを取り入れアートのもつ人を繋ぐ力を活かし、丁寧に、じわじわ感をもって、今後の活動に取り組んでいきたい、とのお話しであった。",
+    "address": "さいたま市緑区三室680-1",
+    "phone": "048-711-4990",
+    "contact_role": "代表",
+    "contact_person": "太田 好泰",
+    "basic_info": {
+      "住所": "さいたま市緑区三室680-1",
+      "電話番号": "048-711-4990",
+      "代表": "太田 好泰",
+      "HP/SNS": "ウェブサイト\nFacebook\nInstagram"
+    },
+    "basic_info_links": {
+      "HP/SNS": [
+        "https://www.sumaikata.org/kondohouse",
+        "https://www.facebook.com/Kondohouse.Mimuro",
+        "https://www.instagram.com/kondo.house/"
+      ]
+    },
+    "link_urls": [
+      "https://www.sumaikata.org/kondohouse",
+      "https://www.facebook.com/Kondohouse.Mimuro",
+      "https://www.instagram.com/kondo.house/",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Fkondohouse-kon-kitchen%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/10/アセット-1-1-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/10/アセット-3-1.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/10/アセット-2-1.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3232.264319230623!2d139.6695954122028!3d35.89154157240564!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018c1b105a0479b%3A0xc15d89029df730f6!2z44Kz44Oz44OJ44Km44OP44Km44K5IEtvbuOCreODg-ODgeODsw!5e0!3m2!1sja!2sjp!4v1737693421213!5m2!1sja!2sjp",
+    "geo_id": "20",
+    "ward": "緑区",
+    "latitude": 35.89165,
+    "longitude": 139.67152,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "彩光舎",
+    "list_label": "彩光舎 \n さいたま市の美術予備校・絵画教室・ギャラリー・画材販売を運営しているマルチな美術研究所",
+    "tagline": "さいたま市の美術予備校・絵画教室・ギャラリー・画材販売を運営しているマルチな美術研究所",
+    "fiscal_year": "令和4年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/gallery-saikousha/",
+    "body_text": "オープンのきっかけ、経緯は？\nオーナーの青山さん（ご先祖様は鎌倉時代に京都から浦和へ移住してきた記録が残っており、日蓮聖人を自宅に泊めたこともあるとか！）は、証券会社で働くかたわら、1967年に自宅の一画に画材店と子ども向けのお絵描き教室を開業した。その後、美術ブームを追い風に規模を拡大。脱サラ後は大人向けの絵画教室に続き、美大進学を目指す予備校「彩光舎美術研究所」をスタート。現在は、週替わりでアート作品を展示する画廊「ギャラリー彩光舎」もある。ちなみに彩光舎の屋号は、画材の仕入れ先だった文化堂の人に考えてもらったそう。「彩の国さいたま」というキャッチフレーズよりはるか昔から「彩」の文字をつけているのが密かな自慢。\n どんな場所なの？\n浦和駅西口から徒歩11分、旧中山道沿いの調神社向かいにある。ここは4歳～87歳まで、老若男女問わず絵を描くのが大好きなたくさんの人たちが美術を学びに来る総合的なアートの学び舎（まなびや）だ。\n特に予備校からはこれまでに5,900人（けっこう有名な画家やマンガ家も卒業生にいますよ！）を超える美大進学者が巣立っていった。彼らのなかには次世代のアーティストを育てるため講師として戻って来る人も多い。ここは、いわばアーティストたちにとっての「実家」のような原点であり、アートと人、そして人と人とをつないでいく場所だ。\nアートとの繋がりと未来展望は？\n1980年頃、調神社挟んで反対側の浦和第一女子高校の美術の宮田先生から美術大学予備校開設の依頼があり、予備校をはじめる。東京藝術大学合格者を12名輩出した年もあった。今年の埼玉県展に39人入選、毎年12月にサムホール展を開催をしている。（18回目）\n現在は、貸しギャラリー（43,000円/1週間）、キッズ絵画教室、大人の絵画教室、予備校と「教育」に力を入れている。特に未来をつくり続ける子どもたちへの美術教育については、時代のニーズに合わせて、今の良さを引継ぎながらもどのように実施していくかを模索し、より良い形で今後の展望につなげていく。地域を盛り上げながら、地域の人から愛される絵画教室としてどのように展開していくのかに注目。",
+    "address": "さいたま市浦和区岸町6-2-1",
+    "phone": "048-822-9952",
+    "contact_role": "代表",
+    "contact_person": "青山 健一",
+    "basic_info": {
+      "住所": "さいたま市浦和区岸町6-2-1",
+      "電話番号": "048-822-9952",
+      "代表": "青山 健一",
+      "HP/SNS": "ギャラリー\n絵画教室\nX"
+    },
+    "basic_info_links": {
+      "HP/SNS": [
+        "https://www.gallery-saikousha.com",
+        "https://www.saikousha.jp/",
+        "https://x.com/gallerysaikosha"
+      ]
+    },
+    "link_urls": [
+      "https://www.gallery-saikousha.com",
+      "https://www.saikousha.jp/",
+      "https://x.com/gallerysaikosha",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Fgallery-saikousha%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-1-6-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-2-5.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-3-6.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3233.8455296873085!2d139.65237171220136!3d35.85279107241772!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018ea860f86c8f5%3A0xbad38ed02d1036da!2z44Ku44Oj44Op44Oq44O85b2p5YWJ6IiO!5e0!3m2!1sja!2sjp!4v1737697911686!5m2!1sja!2sjp",
+    "geo_id": "21",
+    "ward": "浦和区",
+    "latitude": 35.85272,
+    "longitude": 139.65454,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "しばふハウス",
+    "list_label": "しばふハウス \n 「屋内版公園」まさかの無料！0歳から誰でも来られる「育児を街ぐるみで」がコンセプトの居場所",
+    "tagline": "「屋内版公園」まさかの無料！0歳から誰でも来られる「育児を街ぐるみで」がコンセプトの居場所",
+    "fiscal_year": "令和3年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/shibafu-house/",
+    "body_text": "どうしてはじめようと思ったの？\n代表の三尾さんは、元々ITベンチャーに勤めていたとき、働きながら児童養護施設の支援を行うNPOにボランティアとして関わった。それをきっかけに「出産・育児・家事とお母さんの負担を減らす支援をまちぐるみでできたら」と考えるように。子供や母親について学ぼうと学習塾で2年間働く中、子供たちの表情の変化が面白い、天職だ！と感じられた。そんな訳で、しばふハウスは「子供も楽しめるし、母親も楽できる」場として2016年9月にオープンした。\nどんな場所なの？　運営は？\n元お蕎麦屋さんだった所を借りている。子供たちと一緒に壁塗りをしたり、うさぎ小屋などを作ったりした。家具や備品なども基本的に全てもらい物。嬉しい循環が起こっている。「お互いさま」でがんばらなくていい空間にデザインしている。アシスタントの学生さんたちも全員ボランティア。子供たちもアシスタントも特に「役割」は与えられていないので自由にやりたいことをやっていい。それがクリエイティブ。運転資金は、三尾さんが経営する「表現する・伝える」のが目的の学習塾の売上で賄われている。\n具体的にはどんなことが起こっている？\n現在、０歳～中学生、高校生の子が来ている。 みんなで一緒に、ゲームをしたり、宿題をしたり、トランポリンをしたり。年上の子が年下の子を見てくれる。自主性が育って、自信がついているのでしょう、最近、近隣の中学校の生徒会に立候補した中学１年生の多くが「しばふハウス」に通っている子だったそう！また、子供たちが「屋台をやってみたい」ということで「やってみなよ」と、はす向かいの与野イオンさんに食材集めに行かせてみたり、ハロウィンイベントの協力をしてもらう店に一緒に訪問したり、子供たちと街とが繋がっている。\n将来の展望は？\n今後、さらに街と積極的に関わって行きたいし、子供たちにいろんな体験をしてもらいたいと、三尾さんは考えているそう。アートや音楽などの「いろんなハブになりたい」とのこと。母親層と子供たちが公式LINEで1,000㆟くらい登録しているので、告知することができる。例えば、子供連れのアートイベントを企画してコラボでプログラムを組む…など、色々なことが考えられそう。\n自由でクリエイティブな空間がしばふハウスにはあって、この場所からどんな経験が生まれて、人財が育って行くのか、ワクワク ！",
+    "address": "さいたま市中央区上落合3-7-10",
+    "phone": "048-762-9016 / 080-3551-8497",
+    "contact_role": "代表",
+    "contact_person": "三尾　新",
+    "basic_info": {
+      "住所": "さいたま市中央区上落合3-7-10",
+      "電話番号": "048-762-9016 / 080-3551-8497",
+      "代表": "三尾　新",
+      "HP/SNS": "ウェブサイト\nFacebook\nInstagram\nLINE"
+    },
+    "basic_info_links": {
+      "HP/SNS": [
+        "https://www.shibafu-house.org/",
+        "https://www.facebook.com/shibafuhouse/",
+        "https://www.instagram.com/shibafuhouse_mio/",
+        "https://lin.ee/A67vBGE"
+      ]
+    },
+    "link_urls": [
+      "https://www.shibafu-house.org/",
+      "https://www.facebook.com/shibafuhouse/",
+      "https://www.instagram.com/shibafuhouse_mio/",
+      "https://lin.ee/A67vBGE",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Fshibafu-house%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-1-16-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-2-15.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-3-16.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3232.248291658354!2d139.62264521220297!3d35.89193417240555!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018c17af7cb4bad%3A0xa296a08aa7e09af4!2z44GX44Gw44G144OP44Km44K5!5e0!3m2!1sja!2sjp!4v1737700622321!5m2!1sja!2sjp",
+    "geo_id": "22",
+    "ward": "中央区",
+    "latitude": 35.89174,
+    "longitude": 139.62515,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "社会福祉法人みぬま福祉会 工房集",
+    "list_label": "社会福祉法人みぬま福祉会 工房集 \n 障がいのある方々が、個々が生き生きと　好きなことを仕事として創作活動できる素敵な「場所」",
+    "tagline": "障がいのある方々が、個々が生き生きと　好きなことを仕事として創作活動できる素敵な「場所」",
+    "fiscal_year": "令和4年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/kobo-syu/",
+    "body_text": "オープンのきっかけ、経緯は？\n「みぬま福祉会」は1984年発足。1985年に法人化し「川口太陽の家」を開所。\n発足当初から、障がいのある方々（仲間）とともに活動することを模索していた。働くことは人が生きる上で大切なことの一つ。お金をつくり、社会と繋がり、生き生きとした人間としての成長や発達につながること。当初はどちらかというと単純な軽作業が中心だったが、重度の知的障がいのある「あっこさん」が生き生きと絵を描く姿を見て、宮本さんが「アートを通して、あなたしかできない仕事をしてみよう」と、2002年に「工房集」を立ち上げた経緯を熱く語っていただいた。\nどんな場所なの？\n工房集は、見沼田んぼや畑などの緑豊かな風景に囲まれた開放的な敷地にある。どこか非日常的な雰囲気だが「ワクワク」するような外観だ。中に入ってみると、仲間たちが作業場についたり誰かと話していたりと、日常の時間が流れていた。アトリエ、ギャラリー、カフェスペースの３つのエリア。現在カフェスペースはギャラリー開催時のみ、後援会の協力のもと営業中。作品は建物の内外に展示されていてワクワクがたまらない。工房集のアトリエで創作しているアーティストは20人ほど。みぬま福祉会全体では、およそ150人の方が絵画、織物、木工、書、ステンドグラス、漫画、写真など多彩な創作活動を楽しんでいる。\nアート活動と未来展望は？\n作品は国内外の美術館（東京都美術館、埼玉県立近代美術館等）やギャラリーで展示され、海外のギャラリーと独占契約を結んでいる方もいる。工房集主催の個展のほか国内外で仲間たちの作品を知ってもらう展示機会を増やし、努力して作品を産み出している、ハンデを持って生まれた人の力強さも伝え続けていきたいことの一つ。企業の広報誌や公共ポスターにも採用されている。2016年には埼玉県障害者芸術文化活動支援センター「アートセンター集」を立ち上げ、芸術文化活動を通して人と人がつながり、障がいがあっても豊かな人生を過ごせる社会を目指して前進している。\nお話しを伺って\n最後に、お話しをうかがって感銘を受けたことを記したい。\n障がいのある方々を「仲間」と呼び、職員と利用者の関係でなく同時代を共に生きる仲間と捉えていること。そして、知的障がい者の美的感覚は持って生まれた才能と見られがちだが、宮本さんは「コツコツ努力しているんです。一人一人が自分の作風をつかんでいる。」というお話しされていたこと。私たちと同じように努力し、自分にとっての最高の作品を届けることを根っこに持って活動していることを知った。どんな人もアートを通して個性を表現しているんだということをどんどん発信していきたい、という思いが伝わってきた。",
+    "address": "川口市木曽呂1445（緑区隣接の市境、東浦和駅徒歩14分）",
+    "phone": "048-290-7355",
+    "contact_role": "取材対応",
+    "contact_person": "宮本 恵美",
+    "basic_info": {
+      "住所": "川口市木曽呂1445（緑区隣接の市境、東浦和駅徒歩14分）",
+      "電話番号": "048-290-7355",
+      "取材対応": "宮本 恵美",
+      "HP/SNS": "ウェブサイト\nFacebook\nInstagram"
+    },
+    "basic_info_links": {
+      "HP/SNS": [
+        "https://kobo-syu.com",
+        "https://www.facebook.com/kobosyu/",
+        "https://www.instagram.com/kobo_syu/"
+      ]
+    },
+    "link_urls": [
+      "https://kobo-syu.com",
+      "https://www.facebook.com/kobosyu/",
+      "https://www.instagram.com/kobo_syu/",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Fkobo-syu%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/10/アセット-3-4-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/10/アセット-1-5.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/10/アセット-2-5.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3233.4684063493028!2d139.71226107663682!3d35.86203647252958!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x601895169abe76e7%3A0x6f922ede2018bfa0!2z5bel5oi_6ZuG!5e0!3m2!1sja!2sjp!4v1737695713214!5m2!1sja!2sjp",
+    "geo_id": "23",
+    "ward": "市外（川口市、緑区隣接）",
+    "latitude": 35.86194,
+    "longitude": 139.7151,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "STUDIO・４５",
+    "list_label": "STUDIO・４５ \n お父さんへの想いが詰まった居心地の良い地元コミュニティの憩いの場",
+    "tagline": "お父さんへの想いが詰まった居心地の良い地元コミュニティの憩いの場",
+    "fiscal_year": "令和3年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/studio45/",
+    "body_text": "お父さんへの想いが詰まった「SUTDIO・４５」\nカメラマンのお父さんが運営していた写真撮影スタジオの「SUTDIO・４５」。オーナーの小泉さんは病床に倒れたお父さんと向かい合ううちに、アーティストでもあったお父さんの芸術について、また闘病中の父に自分は何をできたのかを考え、それまで興味のなかったアートと福祉に関心を持った。そしてうらわ美術館、東京都美術館企画展のボランティア、東京藝術大学の「アート×福祉」をテーマにしたDOORプロジェクト、さいたま国際芸術祭2020のサーキュレーションさいたまや一般公募枠での企画展への参加を経て、まちの写真スタジオ「SUTDIO・４５」をオープンさせる。\n居心地の良い地元コミュニティの憩いの場\nここは写真スタジオとして活用するだけではない。地元のコミュニティの憩いの場として、万人がよりよく生きたいという想いをかなえられる場所、様々な人がフラットに集える居心地の良い場所づくりを目指している。\nまた、県立の小児病院ボランティアの経験や小学校の登下校に付き添い子どもたちと触れ合った経験から、子どもたちに寄り添いたいという想いも強い。\nさまざまなイベント開催による\n「SUTDIO・４５」の広がり\nオープンした2021年10月には障がいと健常の境界線を考える上映・対話会、舞踏パフォーマンス・WS、みとりし上映・対話会を行った。今後も小泉さんが自身で企画したイベントの開催を行っていくとともに、居心地の良い地元コミュニティの憩いの場づくりをめざす。\nちなみにこのスタジオはさいたま国際芸術祭2020サーキュレーションさいたまの仲間、「さいたまde海賊」の拠点でもある。",
+    "address": "さいたま市浦和区高砂4-3-1高砂サニーコーポ103",
+    "phone": "080-9691-4554",
+    "contact_role": "代表",
+    "contact_person": "小泉　文",
+    "basic_info": {
+      "住所": "さいたま市浦和区高砂4-3-1高砂サニーコーポ103",
+      "電話番号": "080-9691-4554",
+      "代表": "小泉　文",
+      "HP/SNS": "ウェブサイト\nFacebook\nInstagram\nX"
+    },
+    "basic_info_links": {
+      "HP/SNS": [
+        "https://www.studio-yongou.jp/",
+        "https://www.facebook.com/studioyongou",
+        "https://www.instagram.com/studioyongou/",
+        "https://twitter.com/studio45_urawa"
+      ]
+    },
+    "link_urls": [
+      "https://www.studio-yongou.jp/",
+      "https://www.facebook.com/studioyongou",
+      "https://www.instagram.com/studioyongou/",
+      "https://twitter.com/studio45_urawa",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Fstudio45%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/asset-7-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/asset-8.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/asset-9.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15277.594410183814!2d139.6532874267568!3d35.84122987136263!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018eb804ac8d7c1%3A0x7bda9e6e803ecf2b!2zU1RVRElP44O777yU77yV!5e0!3m2!1sja!2sjp!4v1737702104017!5m2!1sja!2sjp",
+    "geo_id": "24",
+    "ward": "浦和区",
+    "latitude": 35.85728,
+    "longitude": 139.64699,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "STAND Coffee コトコト＆Gallery-B",
+    "list_label": "STAND Coffee コトコト＆Gallery-B \n 自然とアートが織り出すもの",
+    "tagline": "自然とアートが織り出すもの",
+    "fiscal_year": "令和3年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/stand-coffee-cotocoto-gallery/",
+    "body_text": "どんな場所?\n南浦和駅西口から（徒歩約５分）田島通りへと進むと、お蕎麦屋さんの隣りに隠れ家的お店がある。店内はギャラリースペース含め10席ほどのカフェ。アットホームな雰囲気で居心地がよい。ギャラリースペースは元和室を改装。作品を観ながらゆったり話すのによい。\nオーナーは、大学生時代、北浦和で珈琲専門店のバイトをしていた。そのときに培ったドリップ珈琲の味に自信がある。コトコトの一番の人気は、とろけるような甘みの完熟マンゴー。１年を通して世界各国の旬のマンゴーを毎週空輸で取り寄せている。\nオープンのきっかけは?\nオープンは2019年4月14日（オーナーの誕生日）。30年前に建てた二世帯住宅。両親が他界して10年以上空いていた１階部分をカフェ＆ギャラリーに改修した。野口さんは根っからの浦和っ子。定年まで都内で建築関係の仕事をしていた。小学校時代から腐れ縁の同級生に、現在、美術家として活躍している渋谷和良さんがいた。お互い50歳後半を迎え、二人で会うたび、そろそろ地域に恩返ししようと語ってきた。災害が多い日本にとって、普段からご近所さん同士が、コミュニケーションしやすい「場所」の大切さを感じ、「カフェ」をオープンした。\n■何をしている?\n現在、コトコトギャラリーは、個展以外に定期的に子どもたち向けのワークショップを開催したり、国蝶の「オオムラサキ」や「ジャコウアゲハ」を卵や幼虫から蝶になるまで育て子どもたちが観察できる場を提供している。ワークショップの始まりは浅見俊哉さんのワークショップ（影をつかまえる）。次にオーナー自らシュロの葉っぱでバッタを折るワークショップを開催。バッタの師匠は見沼で活動している蝶の観察会の主催者のひとりでオーナーがその後継者の一人。今ではコアなファンが集まる人気のワークショップになっている。\nこれからどうする?\n子どもたちに「アートと自然」の楽しさを伝えることで地域に恩返したいと野口さんは語る。昨年から、さいたま市の自然緑地を守る「みどり愛護会」の活動にも参加し、天蚕（ヤママユ）の育成にも力を入れ始めた。いずれここからオリジナルの絹糸ができてくるだろう。\nアートはアートだけでは成立しない。美術館のアート、公園のアート、民家のアート等、置かれる場所との関係でアートは無限に生まれてくる。そしてさいたま市は都会でありながら豊かな自然環境に恵まれている。自然とアート、この２つが結びつくことでどんなアートが生まれてくるのか。これからの展開が楽しみである。",
+    "address": "さいたま市南区南本町2-7-12",
+    "phone": "070-4534-8652",
+    "contact_role": "代表",
+    "contact_person": "野口　敬",
+    "basic_info": {
+      "住所": "さいたま市南区南本町2-7-12",
+      "電話番号": "070-4534-8652",
+      "代表": "野口　敬",
+      "HP／SNS": "Facebook\nX"
+    },
+    "basic_info_links": {
+      "HP／SNS": [
+        "https://www.facebook.com/STAND-Coffee-%E3%82%B3%E3%83%88%E3%82%B3%E3%83%88Gallery-112651133435406/",
+        "https://x.com/cotocoto0414"
+      ]
+    },
+    "link_urls": [
+      "https://www.facebook.com/STAND-Coffee-%E3%82%B3%E3%83%88%E3%82%B3%E3%83%88Gallery-112651133435406/",
+      "https://x.com/cotocoto0414",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Fstand-coffee-cotocoto-gallery%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/12/media_20250311_084738_3635008837871565117-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/12/IMG_4907.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/12/IMG_4913.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3234.086295691394!2d139.66282127579504!3d35.84688747253428!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018ebe10d4f382f%3A0xeff4ed7a26da4f72!2zU1RBTkQgQ09GRkVFIOOCs-ODiOOCs-ODiA!5e0!3m2!1sja!2sjp!4v1734622518073!5m2!1sja!2sjp",
+    "geo_id": "25",
+    "ward": "南区",
+    "latitude": 35.84668,
+    "longitude": 139.66512,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "space845",
+    "list_label": "space845 \n この絶対的開放感で心が解放される場所",
+    "tagline": "この絶対的開放感で心が解放される場所",
+    "fiscal_year": "令和3年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/space845/",
+    "body_text": "さいたま市の「はしっこ」space845\nspace845はさいたま市岩槻区のはしっこ、越谷と春日部に隣接した場所にある。目の前には水田が広がりその先にはスカイツリーが見える抜群のシチュエーション。オーナーの利根川さんには10年ほど前から構想があった。みんなの集まる場所を作りたい。その思いがいよいよ2021年に始動した。\n建物は父の会社兼住居として建てられた。薪ストーブのある吹き抜けの広いリビング、その一角には仕切られた畳のスペース。床の間のある畳の部屋と広いキッチン。ゆったりとした洒落たつくりだ。その他、利根川さんの人柄が伝わるような木のぬくもりが感じられる作業場や畑もある。\n始めた動機は「みんなが集まる場所を作りたい」\nどんな場所にしたいか、それはふたつある。\nひとつは、なんとなく人が集まってきて、ぼーっとしていられる場所。ふらっと来て集まった人たちの自然なコミュニケーションで何かが生まれる、そんな空間が作りたい。\nもうひとつは、各自が自由な表現のできる場所。販売などを行うギャラリーや個展ではなく、自分を表す、表現自体を見せる、アートなど自由な制作、それを作るところから見せたい、共有したい、そのような場所だ。一方、長く継続していくことも重要な点として見据えている。\nアーティスト、サポーター、地域住民など\n多くの人の「交流の場」\n2021年夏にオープンし、浅見俊哉さん、遠藤一郎さんのプログラムを実施した。その時、アートの制作過程を間近で見るとともに、アーティストのアートに取り組む姿勢や関わり方に接することができ、これが大きな経験となったという。もともとさいたまトリエンナーレ2016に制作として関わりアーティストとの繋がりは多かったが、さらに若いアーティストとも繋がり、ここで制作・展示をやりたいという声も上がっている。\nすでに何人かのアーティストと、制作・展示の相談をしており実現が楽しみだ。滞在型の作品制作も計画しており、その時は制作過程をオープンにする。これらの活動によりアーティスト、サポーター、地元住民など多くの人の交流が行われることだろう。\nまた、本箱に関するプログラムなどアーティスト招聘以外にも多様な計画がある。\nみんながやりたいことをやる場を作る！\nさいたま市のはしっこで熱い情熱が密かに燃えている。",
+    "address": "さいたま市岩槻区大口６３９−１",
+    "phone": "",
+    "contact_role": "代表",
+    "contact_person": "利根川　兼一",
+    "basic_info": {
+      "住所": "さいたま市岩槻区大口６３９−１",
+      "代表": "利根川　兼一",
+      "HP/SNS": "ウェブサイト\nFacebook"
+    },
+    "basic_info_links": {
+      "HP/SNS": [
+        "https://space845.tumblr.com/",
+        "https://www.facebook.com/profile.php?id=100063828563884"
+      ]
+    },
+    "link_urls": [
+      "https://space845.tumblr.com/",
+      "https://www.facebook.com/profile.php?id=100063828563884",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Fspace845%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/asset-1-26-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/asset-2-25.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/asset-3-25.jpg"
+    ],
+    "google_map_url": "",
+    "geo_id": "26",
+    "ward": "岩槻区",
+    "latitude": 35.94558,
+    "longitude": 139.74562,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "takase",
+    "list_label": "takase \n “もの”を通して“何か”をつたえるshop&gallery",
+    "tagline": "“もの”を通して“何か”をつたえるshop&gallery",
+    "fiscal_year": "令和4年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/takase/",
+    "body_text": "『“もの”を通して“何か”を伝えたい』\n洋服、器、古道具、石けん、アート、アートブック、、、shop&garelly“takase”では、様々な企画展が開催されている。\nオーナーの高瀬さんは、企画する展覧会で自身の感覚を大切にしている。取り扱うどの種の作品にも、“何か伝えることがあること”を重視しているそうだ。お店の名前をテーマやコンセプトがあるものではなく“takase”にして良かったと語る。その言葉は、高瀬さん自身の心が動く“もの”への愛情と情熱がお店を作りだしている、と感じさせてくれる。\n『本当にやりたいことを求めて』\nもともとは水道屋さんでお仕事をされていた高瀬さん。洋服が好きで週末になると買い物をする日々のなか、「自分は何のために生きているのだろう」と考えるように。その時期に山登りを始め、自然に触れようと尾瀬に行ったことがきっかけで、 “本当にやりたいこと”をやろうと決意したという。\n具体的に“何か”ということを求めて動き始めた高瀬さん。いろいろなご縁で、知人と二人で雑貨屋を始め、その後独立し6年前にtakaseをオープンした。\n『枠にとらわれない自由な発想で』\n今までは、ライフスタイルに関係性の深いものを企画する事が多かったそうだが、今後はアートやオブジェの企画にもっと挑戦したいそう。 枠にとらわれない、唯一無二の事をやっていきたい。 「アートって救われるじゃないですか。売れないものほど心に与える影響が大きくて。そこを一人でも多くの人に伝えていきたいですねぇ。」\n小売店だから、売れるものでないと利益につながらないという視点に立つとなかなか取り扱えないものでも、人の心に届くように発信を続けたい。\n2号店を考え中？とのことであった。\n『さいたま国際芸術際について思う事』\n全然知らなかった、という率直なお答えをいただいた。\n珍しいアートブックを多く取り扱うほど、アートに関心のある高瀬さん。さいたま国際芸術祭が実際どのような活動をしているのか伝わっていないのは勿体ない。より地元の人にも伝わりやすく興味をもってもらえるよう努力する必要があると強く感じた。\n生活とアートを垣根なく自由に行き来できるtakaseさん。訪れると、日常も非日常も美しく新鮮な気持ちになれる唯一無二の空間だ。",
+    "address": "さいたま市緑区宮本2-19-14",
+    "phone": "048-762-7524",
+    "contact_role": "オーナー",
+    "contact_person": "高瀬 勝一",
+    "basic_info": {
+      "住所": "さいたま市緑区宮本2-19-14",
+      "電話番号": "048-762-7524",
+      "オーナー": "高瀬 勝一",
+      "HP/SNS": "ウェブサイト\nInstagram"
+    },
+    "basic_info_links": {
+      "HP/SNS": [
+        "http://takase-0.com/",
+        "https://www.instagram.com/takasenotakase/"
+      ]
+    },
+    "link_urls": [
+      "http://takase-0.com/",
+      "https://www.instagram.com/takasenotakase/",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Ftakase%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-1-8-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-2-7.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-3-8.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d51737.34234376777!2d139.61219301216408!3d35.85920538327584!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x602206072dca61a5%3A0xb2d73c65350a5497!2stakase!5e0!3m2!1sja!2sjp!4v1737698545076!5m2!1sja!2sjp",
+    "geo_id": "27",
+    "ward": "緑区",
+    "latitude": 35.88811,
+    "longitude": 139.6936,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "つきのみちくさ",
+    "list_label": "つきのみちくさ \n 浦和の歴史的な小道で木の温もりを感じる自由な空間",
+    "tagline": "浦和の歴史的な小道で木の温もりを感じる自由な空間",
+    "fiscal_year": "令和3年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/atelier-ring/",
+    "body_text": "オープンのきっかけ、経緯\n青山さんご夫妻は建築士で、住宅など様々な建物を設計している。青山さんが所有するこの土地は駄菓子屋さんに貸していたが、駄菓子屋さんがやめることになって何を作るかを考えた。かつての商店街で現在も人通りの多い道に面していて、全てが住宅だと通りに対して閉じた閉塞的な雰囲気になってしまう。街のスポットとなる地域に開かれた場所を作りたい考え、現在の貸しスペースかつ住居としての利用が可能な「つきのみちくさ」をオープンした。\n「つきのみちくさ」から生まれる活動\n「つきのみちくさ」は青山ご夫妻の建築事務所「アトリエ・リング」のプロジェクトの一つである。貸しスペースは、展示ギャラリー的に利用されたり、日常的には研修や打ち合わせ場所として使われたりと様々だ。現在はコロナ禍ということもあり自由に広報できず利用は限られているが、オープン時には「つきのみちくさ ことはじめ―木とともに暮らす かたち展―」と題し、家具作家による小物や家具の展示・販売、映画の上映、木と親しむようなワークショップの開催などを行った。\nこういったことが日常的に行われる場所にしていきたい。\n今後の展望は？ \n月単位で一週間程度の展覧会が開かれる展示ギャラリーや会議スペースとして活用して欲しいと考えている。また、近くにある自邸の中庭も利用し、２つの拠点を繋いで「つきのみちくさ」の屋内展示と自邸中庭の野外展示を企画しても面白い。自邸は現在１階に空き部屋がるので、アーティスト・イン・レジデンスの可能性も夢見ている。\nさらに、「さきっちょ」や「楽風」など周辺施設と連携や、「彩光舎」の美術研究所の方たちと展示会を行なうなど、少しずつネットワークを広げることを考えているという。\nどのような場・施設があると良いか \n青山さんは、「人々が自由に集まり、ふとした会話の中で企画が生まれる。そういったものが自由活発に出てくるような、アイデアを混ぜる人（キーパーソン）がいつもいる場所があることで、浦和という街をより良くしていくことができるのではないか」と考える。\n「浦和と大宮はスケールが違う。人間に近い時間と空間のスケールが街にまだ残っていて、静かにのんびりと時間の流れを楽しむような特色がある。ヒューマンスケールに近い経済活動や環境を破壊しない開発が浦和では望ましいのではないか」",
+    "address": "さいたま市浦和区岸町4丁目18-11-1",
+    "phone": "048-822-3894",
+    "contact_role": "代表",
+    "contact_person": "青山　恭之\n永田　博子",
+    "basic_info": {
+      "住所": "さいたま市浦和区岸町4丁目18-11-1",
+      "電話番号": "048-822-3894",
+      "代表": "青山　恭之\n永田　博子",
+      "HP/SNS": "ウェブサイト\nFacebook"
+    },
+    "basic_info_links": {
+      "HP/SNS": [
+        "https://atelier-ring-arch.jp/",
+        "https://www.facebook.com/profile.php?id=100057186710754"
+      ]
+    },
+    "link_urls": [
+      "https://atelier-ring-arch.jp/",
+      "https://www.facebook.com/profile.php?id=100057186710754",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Fatelier-ring%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/asset-1-22-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/asset-2-21.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/asset-3-21.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3233.790618843145!2d139.65424711220155!3d35.85413737241731!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018eb826720cb5d%3A0x39a68480e5d57fc4!2z44Gk44GN44Gu44G_44Gh44GP44GV!5e0!3m2!1sja!2sjp!4v1737701396391!5m2!1sja!2sjp",
+    "geo_id": "28",
+    "ward": "浦和区",
+    "latitude": 35.85421,
+    "longitude": 139.6572,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "東光寺（大宮）",
+    "list_label": "東光寺（大宮） \n “寺”とは本来どういう場所なのかを考えた末の“からくり”がたくさん在る場所",
+    "tagline": "“寺”とは本来どういう場所なのかを考えた末の“からくり”がたくさん在る場所",
+    "fiscal_year": "令和6年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/toukouji/",
+    "body_text": "新しい寺院体験\n大宮駅近くの寺院は、従来の寺院のイメージを覆し、現代的な要素を取り入れた“からくり”を特徴としています。この寺院は地域住民が気軽に訪れ、心安らげる場を提供することを目指しています。例えば、山門の左側には現代的なYUME観音とその周囲の可愛らしい像が鎮座し、音楽や照明による演出で異世界的な空間を作り出しています。一方、右側には中性的でSF的なデザインのSORA地蔵があり、仏教の教えを現代的に感じられる場所となっています。これらの空間は単なる祈りの場ではなく、訪れる人々に癒しとくつろぎを提供する新しい形の寺院体験を提供しています。\n寺院の多機能性と美術的要素\n山門をくぐると、圧倒的な迫力を持つ達磨像と釈迦像が出迎えます。これらの巨大な像は、気迫と力強さを感じさせる一方、そばに設置されたテーブルや給茶機が訪れる人々にリラックスできる場を提供しています。また、客殿には伝統技法で作られた観音菩薩像があり、休憩や祈りを捧げるスペースとして利用されています。さらに、2階の和室には書家による襖絵や寄贈されたコレクションが展示されており、美術館のような空間を楽しむことができます。法事や地域の集まりにも使われるこのスペースは、寺院の多機能性を示す“からくり”の一つです。\n本堂と涅槃堂の多面的な役割\n本堂には薬師如来や釈迦三尊像などが鎮座し、広々とした空間が祈りの場を提供します。また、この場所は音楽イベントやダンスパフォーマンスの会場としても活用され、地域の人々が集まるコミュニケーションの場としての役割も果たしています。さらに、地下の涅槃堂には現代アートや壁画が展示され、死後の世界観を感じられる空間が広がっています。ここでは、故人と語らう時間を持てるだけでなく、生と死について考える機会を提供しています。こうした多様な空間設計により、寺院は人々の心を引きつける新しい形の場として存在しています。\n寺院の理念と住職の願い\n寺院内の鐘つき堂には猫やネズミの彫刻が配され、穏やかな雰囲気を醸し出しています。これらの“からくり”を通じて、住職は寺院が地域の人々にとって敷居が低く、誰もが気軽に訪れられる場所であるべきだと考えました。寺院は、仏教の教えを伝えるだけでなく、祈りや願いを込める場、生と死について考える場、さらには日常の癒しと楽しみを提供する場として設計されています。この場所で、訪れる人々がそれぞれの視点で何を感じ、どのような価値を見いだすかは自由です。ぜひ気軽に訪れて、この新しい寺院の形を体験してください。",
+    "address": "さいたま市大宮区宮町3-6",
+    "phone": "",
+    "contact_role": "HP/SNS",
+    "contact_person": "HP",
+    "basic_info": {
+      "住所": "さいたま市大宮区宮町3-6",
+      "HP/SNS": "HP"
+    },
+    "basic_info_links": {
+      "HP/SNS": [
+        "http://xn----d8ta6sza9441cowp24u.com/"
+      ]
+    },
+    "link_urls": [
+      "http://xn----d8ta6sza9441cowp24u.com/",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Ftoukouji%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2025/04/写真①-1280x720.jpeg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2025/04/写真③-415x311.jpeg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2025/04/写真⑤-415x311.jpeg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d4569.988170198542!2d139.6268974197468!3d35.91100335932365!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018c146e89f6281%3A0x4951b850850d69a!2z5p2x5YWJ5a-6!5e0!3m2!1sja!2sjp!4v1744459992278!5m2!1sja!2sjp",
+    "geo_id": "29",
+    "ward": "大宮区",
+    "latitude": 35.91088,
+    "longitude": 139.62643,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "TOROto",
+    "list_label": "TOROto \n コスモ薬局が地域に開く、食・健康・医療をテーマにしたリビングのような空間",
+    "tagline": "コスモ薬局が地域に開く、食・健康・医療をテーマにしたリビングのような空間",
+    "fiscal_year": "令和5年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/toroto/",
+    "body_text": "薬局と地域コミュニティ\n薬局で働く管理栄養士の知識や技術を生かして地域のためのこども食堂を開催し、それがTOROtoへとつながってゆく。街に薬局が溢れる時代、地域密着こそ大切な個性だと社長の林さんは考える。「会社も地域住民のひとり、一緒に地域の未来をつくる関係」。居場所づくりや学習支援など一見薬局と関係のないことにも、地域の一員として取組む。「江戸時代の川づくりを思います。江戸時代の川って、だれかがつくってくれるものではなくて、民間で、地域のみんなでやるものだったんです。TOROtoも地域のみんなでつくる、川のようなものかもしれません」。\n「誰でも来ていい、居場所になったらいい」\n「困っている人と困っていない人を分けたり、それをこちらが判断するのは違う。目に見えない困りごともある。誰でも来ていい、居場所になったらいい」と総務の島野さん。「みなさんが集まりやすい仕組みや環境をつくることで、出会いや関係性、様々な出来事が生まれ、私たちには想像も及ばない良い変化が起これば御の字」。TOROtoには、暮らしにまつわる本・雑誌もたくさん置いてある。島野さんは本が好きで、「人だけでなく、本との出会いも良いと思うんです」と。ごはんを食べに来るたび、楽しみに、一章ずつ読んでいく人もいるそうだ。\n薬局が地域に開く、優しい場所 “TOROto”\nTOROtoでは、カフェ/コワーキングスペース/地元ファームのオーガニック野菜販売/こども食堂/子どもの学習支援/くらしの保健室…etc. と、ひとことではまとめられない多様な取組をしている。セルフサービスのほうじ茶、子どもを寝かせてお茶をできるような畳スペース（電車が見える！）もある。「ここでサークル活動をするのも良いんです」と色々な使い方を歓迎。フロアにはヨガの案内や、看護師や公認心理士といった専門家に無料で相談できる『くらしの保健室』のお知らせもあり、お昼を食べに来て、ヘルスケアの情報や専門家へ自然とつながることができる。\n「変わりつづけていい」\n休日はよく登山に行くという社長。「人間がつくるものって、制度や効率化ばかりで、単純化しがち。でも自然はそうでないですよね。TOROtoも複雑なままに、多様でいいと思う。会社がなにか提供する形だけでなく、自立したコミュニティであってもいいと思うんです。ここに来る、出会う人たちによって、変わりつづけていい」。ヨガや野菜販売も地域の人との出会いから始まった。今後は読書会や患者の会もしたいそう。ここに居ていい、色々なことをやっていいんだと、生きる力や創造性が後押しされる。地域の人々と出会って何かやってみたい方もぜひ訪れてみてはどうですか。",
+    "address": "さいたま市北区土呂町2-12-20 コスモスクエア4階",
+    "phone": "048-729-5848",
+    "contact_role": "代表",
+    "contact_person": "林 宗一郎",
+    "basic_info": {
+      "住所": "さいたま市北区土呂町2-12-20 コスモスクエア4階",
+      "電話番号": "048-729-5848",
+      "代表": "林 宗一郎",
+      "HP/SNS": "ウェブサイト\nFacebook\nInstagram\nLINE"
+    },
+    "basic_info_links": {
+      "HP/SNS": [
+        "http://www.torotoplace.jp/",
+        "https://www.facebook.com/p/TOROto-100064617526753/",
+        "https://www.instagram.com/toroto_lunchandcafe/",
+        "https://page.line.me/?accountId=kti9049a"
+      ]
+    },
+    "link_urls": [
+      "http://www.torotoplace.jp/",
+      "https://www.facebook.com/p/TOROto-100064617526753/",
+      "https://www.instagram.com/toroto_lunchandcafe/",
+      "https://page.line.me/?accountId=kti9049a",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Ftoroto%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/10/アセット-1-3-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/10/アセット-2-3.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/10/アセット-3-2.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3230.6029157413027!2d139.6300819766391!3d35.932218372507485!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018c7d5dc8d3d47%3A0xa3d162561618e615!2sTOROto%20LUNCH%20%26%20CAFE!5e0!3m2!1sja!2sjp!4v1737693972344!5m2!1sja!2sjp",
+    "geo_id": "30",
+    "ward": "北区",
+    "latitude": 35.93259,
+    "longitude": 139.633,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "Nook&Park （ヌックパーク）",
+    "list_label": "Nook&Park （ヌックパーク） \n 親と子が健やかに成長する場づくり",
+    "tagline": "親と子が健やかに成長する場づくり",
+    "fiscal_year": "令和6年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/nookpark/",
+    "body_text": "どこにあるの？ どんな場所？\n岩槻駅東口から徒歩3分、駅前商店街の路地裏にひっそりとたたずむ入口を入ると綺麗に飾り付けられた緑豊かな庭と1階で営業しているカフェの和やかな様子が伺える。建物は、人形のまち・岩槻で創業170年の歴史を持つ人形専門店・東玉（とうぎょく）の元社員寮であり、2015年の“さいたまトリエンナーレ２０１６プレイベント”及び《ホームベース・プロジェクトさいたま２０１６》の拠点として国内外アーティストが滞在制作と公開プログラムを行った場所でもある。リノベーションスクール＠岩槻を契機にこの建物を改修、2022年からレンタルスペースNook&Park（ヌックパーク）として運営されている内野さんにこの場所を始めたきっかけ、想い、展望などお話を伺った。\n※内野さんは、不動産活用|空き家再生|母子居住支援|コンサルティング『アーキリンクス株式会社』代表として、空き家再生を通して人や町に寄り添う仕組み作りなどを行っている方でもある。\nスペースへの想いと現状\nNook&Park(ヌックパーク）の“Nook（ヌック）”には建築用語で「こじんまりとした隠れ家的な居心地のいい場所・隅っこ・角っこ」の意味があるとのこと。事業構想段階から「子育て世代へ向けたコンセプト〜特に親世代向けの“心の充足地”をどうやって作っていけるだろう」と模索していた内野さんチームの理念と、建物を所有する人形専門店・東玉（とうぎょく）の「子を思う心を育む」という企業理念とが共鳴し、岩槻ならではの親と子が健やかに成長する場づくり“隠れ家的な居心地のいい場所”づくりが行われていると言える。\n現状、建物１階部分はokami∗cafeOryzae（おかみカフェオリゼ）〜日本の伝統的な食文化の麹（こうじ）や発酵食品を使った「体が整う」ランチ、お手製のケーキなどが好評。建物2階-3階部分はYOGA教室、ベビーマッサージ、キッズフラダンス、アロママッサージ・サロンやクラフト、アーティストのアトリエスペースとしても利用されている。また、建物内廊下階段など共用部分や大きな前庭部分も子育て世代に開かれたアートイベント、花火、焚き火、BBQ、竹細工体験イベント等のスペースとして積極的に活用されている。Nook&Park（ヌックパーク）オープン当初からの想い「チャレンジする人をもっと増やしたい・サポートしたい ！」というスペースの想いに共感した様々なテナントやイベント活動のスペースとして利用されている。\n課題と展望\n内野さんは、今後の課題と展望として、①テナント・イベント活動・スペース自体の認知度向上、②岩槻の文化発信、文化継承の役割を挙げる。特に②ついては、人形専門店・東玉（とうぎょく）との協働プロジェクト〜アップサイクル事業としての「木目込」文化を伝えるオリジナル・クラフト開発、「木目込」文化体験イベントなどをNook&Park（ヌックパーク）をはじめとした地域各地（PTA連携ー小学校チャレンジスクール等）で展開していく予定とのこと。\n駅前路地裏の隠れ家的に居心地のいい場所Nook&Park（ヌックパーク）から、岩槻発の様々な新しい活動と取り組みが続々生まれてくるワクワクを感じさせてもらい心が温かくなった。是非今後の展開を注目し、そして応援していきたい。",
+    "address": "さいたま市岩槻区本町3-10-17",
+    "phone": "",
+    "contact_role": "代表",
+    "contact_person": "内野 巧也",
+    "basic_info": {
+      "住所": "さいたま市岩槻区本町3-10-17",
+      "代表": "内野 巧也",
+      "HP/SNS": "Instagram"
+    },
+    "basic_info_links": {
+      "HP/SNS": [
+        "https://www.instagram.com/nookpark_/"
+      ]
+    },
+    "link_urls": [
+      "https://www.instagram.com/nookpark_/",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Fnookpark%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2025/04/NOOKPARK-1-1280x720.png",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2025/04/NOOKPARK-2-415x310.png",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2025/04/NOOKPARK-3-415x311.png"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3229.885407296353!2d139.6950207!3d35.9497731!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018bfc627fa743f%3A0x3591a4c65b2aa332!2zTm9vayZQYXJrIOODjOODg-OCr-ODkeODvOOCrw!5e0!3m2!1sja!2sjp!4v1744459661193!5m2!1sja!2sjp",
+    "geo_id": "31",
+    "ward": "岩槻区",
+    "latitude": 35.94991,
+    "longitude": 139.69498,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "Be ACTO武蔵浦和マチノバ",
+    "list_label": "Be ACTO武蔵浦和マチノバ \n はじめたい、やってみたいが実現する「町の場」",
+    "tagline": "はじめたい、やってみたいが実現する「町の場」",
+    "fiscal_year": "令和7年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/be-acto/",
+    "body_text": "どんな場所？\n武蔵浦和駅から直通のデッキに面したマチノバには、会員が自由に利用できるラウンジ、シェアキッチン、レンタルスペース、シェア本棚などが整備されている。さらに、屋外に設けられた通路や広場も貸し出し対象となっており、イベントの会場として活用されている。利用料金は相場よりも低く設定されており、プロではない一般の人でも気軽に利用できる価格を意識して決められているという。利用者層は、飲食店の営業や教室開講など「初めての挑戦の第一歩を踏み出したい」という人をはじめ、子育て中のファミリー層、休憩や会議目的で訪れるワーカー、自習スペースを求める学生など、多岐にわたっている。\nオープンまでの経緯\nマチノバは、「夢中になれる街」というビジョンと地域の人々が交流できる場をつくりたいという想いのもと、2024年6月にオープンした。立ち上げ時に「地元の人に運営してもらいたい」という思いがあり、その方針から、さいたま市出身の直井さんが運営事務局を務めることになったという。「マチノバ」という名前は、文字通り“町の場”という意味を持つ。特定の機能を持たないその「場」で、何ができるか、何が求められるのかという視点から、町の居心地の良さについて今後も考え続けていきたいと語っていた。\n昨年からはじめた地域のイベント\n武蔵浦和地域には、いくつかの大きな年中行事があるそうだが、直井さんの中で印象に残っているイベントは、マチノバの会員が開催した「夏祭り」とのこと。夏祭りは去年からはじまったイベントで、直井さん自身もどうなるかわからない部分があったそうだが、結果的には大成功だったという。集客できたことも重要だったが、それ以上に会場での空気感や雰囲気がとても良く、武蔵浦和は子育て世代の方々も多く住んでいる中で、学校じゃない場所で集まれる場所があることが重要であったと言う。2026年も開催予定とのこと。\nマチノバが目指す役割\nスタッフも含め、全員を利用者として考えているという直井さん。利用者を迎える側と利用者として迎えられる側がごっちゃになる空間になり、その時々によって、形や雰囲気、役割が変わる場所になることを期待しているそうだ。\nマチノバが打ち出している場所のコンセプトは、「あなたの腕のみせドコロ」。なにかをはじめたい、やってみたい人の腕の見せ所の場所になることを目指している。直井さん個人としては、何かをはじめる人の「失敗できる場所」にしたいと思っているそうだ。それは、なかなか「失敗できる場所」がないからだ。そして、運営者としては、利用者へ「問うこと」や「聞くこと」を心がけていて、利用者の相談に乗ることや、逆に相談に乗ってもらうことも多いという。これから、武蔵浦和の中で、マチノバがどんな場所になっていくのだろうか、とても楽しみである。",
+    "address": "",
+    "phone": "",
+    "contact_role": "所在地",
+    "contact_person": "さいたま市南区沼影１丁目８−１プラウドシティ武蔵浦和\nステーションアリーナ３階",
+    "basic_info": {
+      "所在地": "さいたま市南区沼影１丁目８−１プラウドシティ武蔵浦和\nステーションアリーナ３階",
+      "事務局スタッフ": "直井薫子",
+      "HP/SNS": "ホームページ"
+    },
+    "basic_info_links": {
+      "HP/SNS": [
+        "https://be-acto-musashiurawa.net/"
+      ]
+    },
+    "link_urls": [
+      "https://be-acto-musashiurawa.net/",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Fbe-acto%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2026/03/0-lounge1_small-1000x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2026/03/DSC06226-415x277.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2026/03/DSC06047-415x277.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2026/03/DSC06768-415x277.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2026/03/DSC06496-415x277.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3234.174013307032!2d139.64342207555865!3d35.84473642097524!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018ebd0f26dfcf9%3A0x2c70bbade57032df!2zQmVBQ1RP5q2m6JS15rWm5ZKMIOODnuODgeODjuODkO-8iOOCt-OCp-OCouOCreODg-ODgeODs--8j-ODrOODs-OCv-ODq-OCueODmuODvOOCue-8iQ!5e0!3m2!1sja!2sjp!4v1774672667953!5m2!1sja!2sjp",
+    "geo_id": "32",
+    "ward": "南区",
+    "latitude": 35.84484,
+    "longitude": 139.6461,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "ファーム・インさぎ山",
+    "list_label": "ファーム・インさぎ山 \n 数百年続く見沼の農を未来へ　農業体験、食育、「野良の藝術」に開かれた場",
+    "tagline": "数百年続く見沼の農を未来へ　農業体験、食育、「野良の藝術」に開かれた場",
+    "fiscal_year": "令和3年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/sagiyama/",
+    "body_text": "サギが消え、田園荒れてファーム始まる\nさぎ山は、その名の通り水鳥のサギが棲んでいた山。最盛期は１万羽もいたが50年前に姿を消した。見沼田んぼも都市化、農業後継者不足、土地の荒廃など変化にさらされていた。250年続く農家の萩原さんは「小学生たちが農家の暮らしを知らない」と気づき1997年にファーム・インさぎ山を立ち上げた。仲間たちとヨーロッパへ視察にいくなど研鑽を重ねた。親子の農業体験に始まり学校、企業、NPOなどを受け入れており、都内からの参加者も多い。食育、年中行事、セミナーなどイベントも実施し「農家の暮らしのありのまま」を見せている。\nアートから今と未来が見える\nアートイベントへの協力は、さいたまトリエンナーレ2016がきっかけ。萩原さんの夫、哲さんのがん余命宣告を受け「はなむけの思い」で始まった野外アート展「野良の藝術」は、2017年以来１年に1、2回さぎ山界隈で開く。企画は社会芸術ユニット・ウルスだ。代表の吉田富久一さんは「アーティスト以外でも創造性がある人たちと組みたい」という思いで活動を展開。炭焼き、燻炭焼きの実践から農と芸術の働きに発展した。「単なる、置き物、飾り、癒しに止まらない“生きる勇気”を復活させる活動をしたい」と意気込む。炭焼きを手掛かりに、縄文より続く野良の行く末にまで目を向ける。「アートは自己満足ではない。未来へ向かう創造性の共有。一気に社会を変えるのではないが、日々の積み重ねを通して、やがて社会の根本が変わる」と期待している。\n「消えたら戻らない。」だから価値発見を\n萩原さんは「ここの風景そのものがアートになる。花を活けてもいいし、農具を使ってもいい。お金をかけて、外から何か持ってこなくても、すでにあるものの価値を再発見できる。拾い起す、見つめ直すがキーワードでは」と地域アートの今後に一言。「地元の若い人を発掘し続けないと将来はない。子どもたちにアイデアを募集してもいい」とも。社会芸術と萩原さんとの共同企画で2021年「野良の藝術」では地元の美大生が運営に加わり、クラウドファンディング、シェアサイクリングなどのコラボも実現した。萩原さんは「自然が壊れたら二度と同じ風景は戻らない。それはサギが消えたことからも教えられる。自然は皆のものであるし、50年前にサギが警告を発してくれていたことを見つめ直し、自然との共生、見沼田んぼの存在価値、農村文化等を再確認し未来の子供たちに何が残せるか考えるべき時ではないか」と語った。",
+    "address": "さいたま市緑区上野田282",
+    "phone": "090-5195-2183",
+    "contact_role": "代表",
+    "contact_person": "萩原　さとみ",
+    "basic_info": {
+      "住所": "さいたま市緑区上野田282",
+      "電話番号": "090-5195-2183",
+      "代表": "萩原　さとみ",
+      "HP/SNS": "ウェブサイト\nFacebook\nX\nLINE"
+    },
+    "basic_info_links": {
+      "HP/SNS": [
+        "https://www.sagiyama1997.com/",
+        "https://www.facebook.com/Farminsagiyama",
+        "https://x.com/sagiyama1997",
+        "https://line.me/R/ti/p/@306pkvma"
+      ]
+    },
+    "link_urls": [
+      "https://www.sagiyama1997.com/",
+      "https://www.facebook.com/Farminsagiyama",
+      "https://x.com/sagiyama1997",
+      "https://line.me/R/ti/p/@306pkvma",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Fsagiyama%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/asset-1-19-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/asset-2-18.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/asset-3-19.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3231.714163400871!2d139.69678297579782!3d35.90501567251588!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018bf78413dba87%3A0xae2b979f3022a1ab!2z44OV44Kh44O844Og44O744Kk44Oz44GV44GN44KZ5bGx!5e0!3m2!1sja!2sjp!4v1737701034476!5m2!1sja!2sjp",
+    "geo_id": "33",
+    "ward": "緑区",
+    "latitude": 35.90509,
+    "longitude": 139.70178,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "Blue Bird Cafe & Atelier Blue Bird",
+    "list_label": "Blue Bird Cafe & Atelier Blue Bird \n 音楽とアートで心穏やかに、こだわりの食材で体安らぐ氷川の杜近くのアトリエカフェ",
+    "tagline": "音楽とアートで心穏やかに、こだわりの食材で体安らぐ氷川の杜近くのアトリエカフェ",
+    "fiscal_year": "令和3年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/blue-bird-cafe-atelier-blue-bird/",
+    "body_text": "オープンのきっかけ\nオーナー自身がアーティストであり、学生時代の専攻である版画の現代作品の発表の場が少なかったことから、自身の作品と美術大学時代の仲間の作品を展示する場所があったらいいなと思ったことがきっかけ。また食育に関心があり、自然栽培の野菜や国産お肉などを使用したランチの提供も行う場所とした。また、氷川の杜周辺にカフェなど賑わいのある場所が少なかったこともあり、盛り上げたいという思いもあった。ハーブやコーヒーの勉強した経験を活かし、カフェとして2018年7月20日にオープンし、現在に至る。\nどんな場所？\n「心も体も、元気に優しく癒されていく」空間がコンセプト。店内に飾られている作品は１か月に一回程度入れ替えている。展示作品はお店のコンセプトに合う癒しの作品が選ばれている。無垢材が印象的な店内はオーナーが建築士と相談しながらデザインを考えた。入ってすぐに蒔きストーブのある土間があり、そこで靴を脱いであがるようになっている。奥にはピアノのあるスペースもあり、オーナー自ら絵画教室を開いたり、音楽コンサートを定期に開催している。カフェメニューは、有機野菜ランチセットやコーヒー、ハーブティーに合うデザート。芸術作品・音楽に触れ心を潤し、安心安全な食材で体を養う場所である。\n担い手について\nオーナーは櫻庭亜希子さん。多摩美術大学出身、顔彩画を中心に作家活動をしているマルチアーティスト。デザイン事務所勤務ののち、食育に興味を持ち始め、コーヒーやハーブについて学ぶ。後にカフェ＆ギャラリーをオープン。ギャラリーでは自身の作品を中心に、一般公募した作品も展示。ギャラリーの一角では絵画教室を開いている。いろセラピスト・レイキヒーラーでもある。2022年2月17日よりVenere di Luce というオリジナルブランドを展開している。\n将来の展望\nオーナーは「食の安全にこだわり、絵画と音楽で心を浄化するような癒しの空間を引き続き提供したい」、「氷川神社の近くにあるので、氷川の杜を盛り上げられるような場所でありたい」と語る。また、「地域の皆さんに、芸術に向き合うことの素晴らしさをより広げたいと感じているため、他のギャラリーカフェや美術館と繋がり発展させていきたい」と話されていた。\n店内はオーナーのコンセプトが空間にも表れており、心地よい時間が流れていた。氷川神社に立ち寄った際は少し足を伸ばしてみるのはいかがだろうか。",
+    "address": "さいたま市大宮区寿能町1丁目16−11",
+    "phone": "080-5530-3894",
+    "contact_role": "代表",
+    "contact_person": "櫻庭　亜希子",
+    "basic_info": {
+      "住所": "さいたま市大宮区寿能町1丁目16−11",
+      "電話番号": "080-5530-3894",
+      "代表": "櫻庭　亜希子",
+      "HP": "ウェブサイト"
+    },
+    "basic_info_links": {
+      "HP": [
+        "http://www.atelierbluebird.jp"
+      ]
+    },
+    "link_urls": [
+      "http://www.atelierbluebird.jp",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Fblue-bird-cafe-atelier-blue-bird%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-1-13-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-2-12.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-3-13.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3231.0386174077275!2d139.62827401220383!3d35.92155477239589!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018c10cf0bbf2dd%3A0x2b34477e6464f40d!2zQmx1ZSBCaXJkIENhZmUgJiBBdGVsaWVyIEJsdWUgQmlyZCDjg5bjg6vjg7zjg5Djg7zjg4njgqvjg5Xjgqc!5e0!3m2!1sja!2sjp!4v1737699737938!5m2!1sja!2sjp",
+    "geo_id": "34",
+    "ward": "大宮区",
+    "latitude": 35.92192,
+    "longitude": 139.63068,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "ブロックはかせ．LABO",
+    "list_label": "ブロックはかせ．LABO \n おもちゃがつくりだす、子どもたちの居場所",
+    "tagline": "おもちゃがつくりだす、子どもたちの居場所",
+    "fiscal_year": "令和3年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/blockhakase-labo/",
+    "body_text": "浦和で事業を展開した理由\n前原さんは、ダイヤブロックの商品開発やナノブロックの立ち上げなどを行っていた。全国各地で子どもから大人まで幅広い世代に楽しんでもらえる体験教室を行っていた。長い間おもちゃに関わる中で、企業で働くよりも個人として人との関わりを持ちたいと考え、親しみやすく導入しやすい、飲食と遊びを融合した「総合おもちゃカフェ」を企画した。主なターゲットは「子ども」と「子どもがいる家族」。子どもがいる家庭が増加しているエリアをリサーチして、教室が似合う街のイメージのある浦和の中でも北浦和に店舗を開くことを決めた。\n来客層や利用頻度は？\n近年は、新型コロナウイルスの影響もあって飲食の営業を抑え気味にし、創作・思考・プログラミングの考え方などの少人数制の体験教室に力を入れている。親子連れの参加が多く、はまった子は毎週来てくれるなどリピーターも獲得している。\nまた、母親たちの井戸端会議やママ会などの場所になっており、近隣住民から親しまれている。\n不登校児童の支援団体とも連携協力しており、行き場のない子どもたちの居場所の役割をなしている。\nなぜブロック玩具を題材にしたのか\n近年注目されているSTEAM教育という考え方がある。Science（科学）、Technology（技術）、Engineering（ものづくり）、Art（芸術）、Mathematics（数学）の頭文字を組み合わせた教育方針で、現実の問題を解決に導く力や今までにないものを創造する力を育むことを目的としているものである。\nブロック玩具を題材にするプログラムは、STEAM教育手法であり、トライ＆エラーで問題解決を学ぶことができる。ブロックという身近で親しみやすいものを題材に選ぶことによって、日常に取り入れやすくしている。\n地域交流の場として\nおもちゃを使った教育で、答えに結びつける力、プログラミング的思考の育成を目指している。ブロックを使って「子どもたちの居場所」となるだけではなく、癒しを求める「大人の居場所」にもなっている。\n前原さんは、「北浦和をブロックがあちこちにあるまちにしよう」と提唱している。まちの共通テーマは企業・店舗の連携により拡散していくと考えており、企業の建物のブロック作品の提供や近隣店舗のロゴづくりなど、近隣の店舗との連携も行っている。",
+    "address": "さいたま市浦和区常盤9-11-12-2F",
+    "phone": "048-767-3354",
+    "contact_role": "代表",
+    "contact_person": "前原　浩",
+    "basic_info": {
+      "住所": "さいたま市浦和区常盤9-11-12-2F",
+      "電話番号": "048-767-3354",
+      "代表": "前原　浩",
+      "HP/SNS": "ウェブサイト\nFacebook\nInstagram\nX"
+    },
+    "basic_info_links": {
+      "HP/SNS": [
+        "https://www.blockhakase-labo.com/",
+        "https://www.facebook.com/blockhakase.labo",
+        "https://www.instagram.com/block_hakase_labo/",
+        "https://x.com/block_hakase"
+      ]
+    },
+    "link_urls": [
+      "https://www.blockhakase-labo.com/",
+      "https://www.facebook.com/blockhakase.labo",
+      "https://www.instagram.com/block_hakase_labo/",
+      "https://x.com/block_hakase",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Fblockhakase-labo%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/asset-1-24-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/asset-2-23.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/asset-1-24.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3233.1581324407507!2d139.64325261220202!3d35.86964147241259!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018c1cc22e61cdf%3A0x1a60c95e9a28b252!2z44OW44Ot44OD44Kv44Gv44GL44GbIC4gTEFCTw!5e0!3m2!1sja!2sjp!4v1737701858456!5m2!1sja!2sjp",
+    "geo_id": "35",
+    "ward": "浦和区",
+    "latitude": 35.86903,
+    "longitude": 139.64607,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "ヘルシーカフェのら",
+    "list_label": "ヘルシーカフェのら \n のらにあつまる地域のあれこれ。野菜と温もりとイマジネーション!!",
+    "tagline": "のらにあつまる地域のあれこれ。野菜と温もりとイマジネーション!!",
+    "fiscal_year": "令和3年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/healthy-cafe-nora/",
+    "body_text": "ヘルシーカフェのら\n店名である「のら」は《野菜で良くする。野菜で楽しむ》という意味があります。\nお店の中に入ると、店頭には地元の野菜が販売されており、地域のあらゆる情報がチラシや書籍を通じて語りかけてきます。そして、店主の新井純子さんの明るい「はーい！」という声が響きます。純子さんによると、これらの情報は地域の人が企画したワークショップや、地域の課題解決に向けた取り組みが多いとのことです。\nのらの存在は地域を集約したものであり、暮らしの中の「出会いの場」という印象で取材は始まりました。\n孤独だった子育て経験\nのらを始めたのは、「自身の孤独な子育ての経験」が大きいと純子さんは語ります。\n当時は専業主婦はラクだみたいな風潮があり、転勤族だった彼女は誰にも子育ての辛さを打ち明けることができませんでした。ある日、公民館の学習会に参加し、孤独なのは自分だけでなく、地域の課題であることに気づいたと言います。この時に感じた「私の課題はみんなの課題」という意識がのらの根底に流れており、困っている人の課題に一緒に取り組むという寄り添うスタイルが生まれたのかもしれません。\n地産地消\n大量に生産して、流通し、消費される食糧たち。生産性や効率化を声高に叫ぶ世の中。「だからみんな疲れちゃうのよ～」と語る純子さんは、のらをそういった風潮と対極にある店にすることに決めたと言います。カフェで提供される野菜などの食材はほぼ、地域で収穫されたものを使用し、農家さんとのつながりを大切にしています。地元で採れたものを地元の人たちに楽しく食べてもらう。決して大きな経済がまわっているわけではないと語りながらも、作り手とお客様がつながることが何よりも豊かで、無理のない持続可能な仕組みであると話す姿はとても誇らしそうでした。\n芸術について\nそんな純子さんにとって芸術ってどんなものですか？ 最後に直球の質問をしてみました。\n「私にとって芸術は高いところにある話ではない。人間の表現であり、日々の暮らしの中にあるものかもしれない」。著名な作家の作品でなくとも誰かが大切に使用しているお茶碗は、その人にとって大切な芸術品である、という例えで教えてくれました。\n2016年のさいたまトリエンナーレでは矢印の作品で関わったそうです。これからの芸術祭には市民の活力になる取り組みを期待していると話していました。",
+    "address": "さいたま市南区鹿手袋7-3-2",
+    "phone": "048-607-3007",
+    "contact_role": "代表",
+    "contact_person": "新井　純子",
+    "basic_info": {
+      "住所": "さいたま市南区鹿手袋7-3-2",
+      "電話番号": "048-607-3007",
+      "代表": "新井　純子",
+      "HP/SNS": "ウェブサイト\nFacebook\nInstagram"
+    },
+    "basic_info_links": {
+      "HP/SNS": [
+        "https://healthy-cafe-nora.jimdofree.com",
+        "https://www.facebook.com/healthycafenora/",
+        "https://www.instagram.com/cafe_nora_junko/"
+      ]
+    },
+    "link_urls": [
+      "https://healthy-cafe-nora.jimdofree.com",
+      "https://www.facebook.com/healthycafenora/",
+      "https://www.instagram.com/cafe_nora_junko/",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Fhealthy-cafe-nora%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-1-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-2-1024x683.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-3-1024x684.jpg"
+    ],
+    "google_map_url": "",
+    "geo_id": "36",
+    "ward": "南区",
+    "latitude": 35.84742,
+    "longitude": 139.63611,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "CHICACU BookStore（移転）→本と喫茶 夢中飛行",
+    "list_label": "CHICACU BookStore（移転）→本と喫茶 夢中飛行 \n 夢に一歩近づく後押しをしてくれる、わたしたちの隠れ家的本屋さん",
+    "tagline": "夢に一歩近づく後押しをしてくれる、わたしたちの隠れ家的本屋さん",
+    "fiscal_year": "令和5年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/muchu-hiko/",
+    "body_text": "夢中飛行はどこにある？\n大宮駅から徒歩で約 8 分。一の宮通りを氷川参道に向かって歩いた先の ks’氷川の杜というマンションの 2 階に夢中飛行はある。一の宮通りは古着屋や美容院が多く立ち並んでおり、人通りも多い通りだが、この店は知る人ぞ知る隠れ家のよう。 店外には通りの雰囲気にマッチした可愛らしい看板が設置されている。初めて来る人はお店を見つけた時のワクワク感も楽しめるので是非探してみてほしい。エレベーターで２階へ行けば、大きな BOOK の文字と明るい店主の直井さんがみんなを歓迎してくれる。\n本と喫茶 夢中飛行ってどんな場所？\nシェア本棚・新刊書店がくっついた本屋と、喫茶店・作家の作品に出会えるショップが組み合わさった場所。そんな店内は本棚オーナーや作家の個性で溢れている。\n本棚オーナーには月3,000円でなることができ、60×30cmの本棚で自分のオススメする本を貸したり販売したりできる。またオーナーにならずとも年会費500円で年中本を借りられる会員になることもできる。\n本を借りた人からコメントを書いてもらえる仕組みがあるのも魅力の一つだ。その場にいなくとも、本を介して人と人のつながりが自然と生まれる。そんな場所だ。\nオープンの経緯\n学生の頃から本や言葉に興味を持っていた店主の直井さん。社会に出てからローカルメディアと出会い、街の人々とつながりを持ちながら活動することを経験しその大切さを知った。その経験を地元で活かそうと北浦和の住まいをひらき新刊書店を始め、地域のみんなと一緒に書店を盛り上げたいという思いからシェア本棚も始めた。「本の前では肩書きのない自分でいられる」とお客さんが言ったことも、直井さんがこのような居場所を開くきっかけになったそうだ。\n様々な思いが集まって、現在の夢中飛行ができている。\n店主直井さんの目標と夢\n「本棚オーナーさんや地域の本好きな人たちの色々な価値観に触れられる。自分の信じられるものや叶えたいことが素直に発信できて、みんなの夢が広がる場所になれば素敵だと思う。夢に一歩近づくために背中を押したり押されたりしながら、みんなが前向きな気持ちになれる場所になるといいな。それが目標。」と直井さん。\nそして夢は「日本一の本屋になる」こと！！\n本好きな人も、本を読んでみたい人も、どんな人でも何か新たな出会いや発見がありそうな場。目的なくふらっと立ち寄ってみるのもいいかも。",
+    "address": "さいたま市大宮区高鼻町1-56  ks’氷川の杜201",
+    "phone": "",
+    "contact_role": "代表",
+    "contact_person": "直井 薫子",
+    "basic_info": {
+      "住所": "さいたま市大宮区高鼻町1-56  ks’氷川の杜201",
+      "代表": "直井 薫子",
+      "HP/SNS": "Facebook\nInstagram"
+    },
+    "basic_info_links": {
+      "HP/SNS": [
+        "https://m.facebook.com/muchuhiko/",
+        "https://www.instagram.com/muchuhiko/"
+      ]
+    },
+    "link_urls": [
+      "https://m.facebook.com/muchuhiko/",
+      "https://www.instagram.com/muchuhiko/",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Fmuchu-hiko%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/10/アセット-1-4-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/10/アセット-3-3.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/10/アセット-2-4.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3231.503965118906!2d139.62727917663852!3d35.910162572514196!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018c1b5f716409d%3A0x2a6f97ae8e5ec4f4!2z5pys44Go5Zar6Iy2IOWkouS4remjm-ihjA!5e0!3m2!1sja!2sjp!4v1737694160109!5m2!1sja!2sjp",
+    "geo_id": "37",
+    "ward": "大宮区",
+    "latitude": 35.91328,
+    "longitude": 139.62938,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "マーブルテラス",
+    "list_label": "マーブルテラス \n まぜこせをテーマに、素敵なクッキーと交流に出会える場所",
+    "tagline": "まぜこせをテーマに、素敵なクッキーと交流に出会える場所",
+    "fiscal_year": "令和3年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/marble-terrace/",
+    "body_text": "お店を開いたきっかけ\n谷居さんたちは2007 年からNPO法人クッキープロジェクトで障がいのある方のクッキー作りをサポート・販売する活動をしてきた。2017 年には埼玉県立小児医療センター内に常設のアンテナショップを開店したが、お客さんは病院に来る人に限られてしまうため一般向けのカフェを開きたいという思いがあった。そんな時、「コミューンときわ」というコミュニティマンションに出会った。スロープや多目的トイレが整備され様々な世帯向け住戸があるなど、寝に帰るだけではない住宅に魅力を感じてここに「マーブルテラス」をオープンした。\n地域交流の場として\n飲食を軸として地域交流の場となっている。\nこれまでにテラスでワークショップやコンサートを行った。また、店内の壁を利用した写真展などの企画展も開催している。コミューンときわの中庭では、さいたま国際芸術祭コーディネーターの浅見俊哉さんのワークショップも行われた。来客層としては、近所に住むシニアの方や子育て中のお母さんたちが多く訪れている。コミューンときわの住民同士の交流も盛んで、住民の方もよく訪れるそうだ。\n一方でコロナの影響もあり、集客に苦慮しているという。\n今後お店をどんな場所にしていきたいか\n「マーブルテラスを、公民館のような役割を持った集まりができる場所にしたい。もちろん障がいのある方も気兼ねなく利用できるお店にしたい」とお話しされていた。\nクッキープロジェクトの活動で大事なキーワードである「まぜこぜ」を大切にしていきたいとのお話だった。\n「まぜこぜ」という言葉は、障がいがある人もない人も、大人も子どもも、会社員も学生も色々な人が関わりあえる社会にしたいという、クッキープロジェクトの理念から来ている。マーブルテラスもそのような色々な人が交わる場所にしたいそうだ。\nどのような場・施設があると良いか\n今回お話を伺った谷居さんは、ミニシアターや小さい劇場がほしいとおっしゃっていた。また、趣味でできる程度の小さいお店や場所があるといいというお話も伺った。許可や手続きがなく、自由に活動ができる場所がほしいと。\n浦和は文化度が高く、画廊やギャラリーなどの文化的スポットが多くあり、芸術に対して理解がある地域だと感じられる。そのような土壌を活かして、今後は芸術活動だけでなく地域交流の場となるような場所が数多くあることが求められているのではないか。",
+    "address": "さいたま市浦和区常盤10-21-9 コミューンときわ1",
+    "phone": "048-717-1689",
+    "contact_role": "取材対応",
+    "contact_person": "谷居　早智世",
+    "basic_info": {
+      "住所": "さいたま市浦和区常盤10-21-9 コミューンときわ1",
+      "電話番号": "048-717-1689",
+      "取材対応": "谷居　早智世",
+      "HP/SNS": "ウェブサイト\nFacebook\nInstagram"
+    },
+    "basic_info_links": {
+      "HP/SNS": [
+        "https://www.cookiesproject.com/",
+        "https://www.facebook.com/cookies.cafe.marble.terrace/",
+        "https://www.instagram.com/cookiescafe_marble.terrace/"
+      ]
+    },
+    "link_urls": [
+      "https://www.cookiesproject.com/",
+      "https://www.facebook.com/cookies.cafe.marble.terrace/",
+      "https://www.instagram.com/cookiescafe_marble.terrace/",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Fmarble-terrace%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/asset-1-23-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/asset-2-22.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/asset-3-22.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d14742.398660812021!2d139.62766055671847!3d35.87201352643045!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018c1704d81b1d1%3A0xfe4946ec46b953fb!2z44Oe44O844OW44Or44OG44Op44K5!5e0!3m2!1sja!2sjp!4v1737701658177!5m2!1sja!2sjp",
+    "geo_id": "38",
+    "ward": "浦和区",
+    "latitude": 35.87231,
+    "longitude": 139.63866,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "ｍárú（マールーウ）",
+    "list_label": "ｍárú（マールーウ） \n 地元食材たっぷりの美味しいごはんと、秘密の花園のような四季折々のガーデンが、アーティスティック！",
+    "tagline": "地元食材たっぷりの美味しいごはんと、秘密の花園のような四季折々のガーデンが、アーティスティック！",
+    "fiscal_year": "令和6年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/maru/",
+    "body_text": "オープンのきっかけ、経緯は？\nもともとは高校生の頃からメイクアップアーティストを志し、そのまま美容の専門学校へ行き美容師をしていた店長の町田さん(トップ写真右)。しかし、美容以外の仕事もしてみたいと感じて、カフェ巡りや料理が好きで両親が飲食店をしていたこともあり、飲食の道に。移動販売ができる中古車を手に入れたのがきっかけでカレーの店を始めた。２年間の移動販売を経て、2004年に大宮の大門町で店舗オープン。2012年、義理の母が手塩にかけて大切に育てている庭のある自宅敷地内へ移転し、現在の食事と景色を楽しめる店に。\nどんな場所なの？\n与野駅から徒歩11分、さいたま新都心駅から徒歩15分ほど。住宅地の一角にマールーウはある。四季折々に花が咲き緑溢れる美しい庭。元々は納屋だった建物を改装した店内。天井には年月を感じさせる木材の梁。壁にはドライフラワーでできたオーナメントやキャンドル。ガラス作家のキャンドル立てなどが並ぶ、落ち着いた雰囲気の店内。地元の旬の野菜をふんだんに使ったランチとスイーツが美味しいと評判の人気店。駐車場は3台。ランチは予約をした方が確実◎\n顔が見える関係を大切に\nマールーウに行くと、知っている人や会いたかった人にバッタリ会うことがよくある。それだけ、価値観を共有できる人たちの集う場所になっているのだろう。町田さんの人柄もあって、店内には笑顔が溢れている。店で使っている食材や、飾ってあるもの、販売している作品など、その多くが親しくしている農家さんや作家さんのものだそう。特に野菜や卵などの食材は近くの農家で仕入れることが多く、育てている人も環境も見知っているので「毎日、最高のものを買えるこのロケーションが、すごく良い。料理をしていて嬉しくなります。」と町田さんは語る。\nつながりの中で生まれて行くもの\nギャラリーカフェではないので一般的な場所貸しはしていない。しかし、つながりの中で企画が持ち込まれると、演奏会、上映会などのイベントを開催して来た。展示も同様で、例えば、庭師のニワシゴトさんが剪定した木で作ったトテムを飾っていたり、ちょうど取材時に来店していた画家のMayamoonさん(トップ写真左)の絵が飾られていたり。今後も何かの作品を店内で楽しむことができそう。「変わらず、元気にやって行きたいだけですよー。」と、町田さんは話してくれた。",
+    "address": "さいたま市大宮区北袋町1-236",
+    "phone": "",
+    "contact_role": "代表",
+    "contact_person": "町田 優子",
+    "basic_info": {
+      "住所": "さいたま市大宮区北袋町1-236",
+      "代表": "町田 優子",
+      "HP/SNS": "Instagram\nLINE"
+    },
+    "basic_info_links": {
+      "HP/SNS": [
+        "https://www.instagram.com/cafe__maru/",
+        "http://lin.ee/o1Bevlh"
+      ]
+    },
+    "link_urls": [
+      "https://www.instagram.com/cafe__maru/",
+      "http://lin.ee/o1Bevlh",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Fmaru%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2025/04/マールーウさん-1-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2025/04/マールーウさん-2-415x311.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2025/04/マールーウさん-6-415x311.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3232.276765291296!2d139.6420755!3d35.89123669999999!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018c1a84615204f%3A0xd9add6fb8d9c142c!2zTWFydSAo44Oe44O844Or44O844KmKQ!5e0!3m2!1sja!2sjp!4v1744457711122!5m2!1sja!2sjp",
+    "geo_id": "39",
+    "ward": "大宮区",
+    "latitude": 35.89156,
+    "longitude": 139.64175,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "水野書店＆Cafe mao-mao",
+    "list_label": "水野書店＆Cafe mao-mao \n 長い歴史を重ねた老舗書店と地元民が憩うカフェギャラリー",
+    "tagline": "長い歴史を重ねた老舗書店と地元民が憩うカフェギャラリー",
+    "fiscal_year": "令和6年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/mizuno-bk/",
+    "body_text": "歴史ある書店として\n岩槻駅から徒歩約６分の現在の場所に居を構えたのは江戸時代にさかのぼり、殿様について来た御用商人だった。はっきりとは分からないが、その頃から紙に関わる仕事に携わっていたようだ。明治になり、学制の導入によって教科書を扱う書店となり、地元民に愛される店として150年あまり。書店を本筋としてきたが、印刷業に手を広げたり学習塾を開いて経営を支えたこともあった。学習塾を開いていた裏手の家屋は現在、フリースクールの場として貸している。\n入ってすぐ気がつくのは正面の歴史書と、奥にある子供が遊べるキッズコーナで、その周りにはずらりと絵本が並んでいる。絵本と歴史書はオウナーの水野夫妻がそれぞれ得意とする分野で力を入れている。また左手の平置き台には、その時々の話題に関連した本や、お勧めの本が並び、１ヶ月ごとに置き換えられている。\nCafe mao-maoの設立\n本屋だけでは経営が難しくなるのを見越して、各地の書店を見て回り、いろいろな勉強会に参加して情報を集め、書店を仕切って皆が気軽に集えるコミュニティカフェをつくろうと決意。本を買った後ゆっくり読めるスペースが欲しいという客の声にも後押しされた。近くに岩槻人形博物館が開館して人の流れが変わるのを察知し、その前にオープンしたいと事業を進め、2019年にCafe mao-maoを書店に併設した。mao-maoという名前は、「くまのがっこう」という絵本に出てくるお母さん牛のマオマオからとったもので、孫の提案だ。\nコミュニティカフェとしてのmao-mao\nCafeはイベントにも使用できるように設計され、白い壁は作品を展示したり、スクリーンとして使えるように考えられている。また天井にはプロジェクターやスポットライトも備えられている。\nふだんは地元民が気軽にランチを食べたりお茶が飲めるカフェで常連客も多い。イベントは場所貸しが基本だが、地元の人たちの活動を応援して盛り上げたいという想いが強い。\n地元の絵本作家やアーティストたちのイベント、映画の上映会や歴史の勉強会など幅広いジャンルのイベントが開催されている。店内には電子ピアノがありコンサートも開かれる。様々なイベントが開かれているが、必ず「振り返り」を行い、新たなイベントに継ないでいくことを大事にしている。\nこれから\nインタビュー中に訪れた常連客やフリースクールの子供たちに話しかける時枝さんには人を包み込むような温かさが感じられる。経営の中心として店を引っ張り、早くからデジタルによる発信に力を入れてきた時枝さんは働きすぎて体を壊したこともあり、あくせくせずに、書店としての基本理念を大事にしながら次世代につなげ、誰もが楽しめる場所にしたいと語る。",
+    "address": "さいたま市岩槻区本町4-2-10",
+    "phone": "",
+    "contact_role": "代表",
+    "contact_person": "水野 時枝",
+    "basic_info": {
+      "住所": "さいたま市岩槻区本町4-2-10",
+      "代表": "水野 時枝",
+      "HP/SNS": "HP"
+    },
+    "basic_info_links": {
+      "HP/SNS": [
+        "https://mizuno-bk.com/"
+      ]
+    },
+    "link_urls": [
+      "https://mizuno-bk.com/",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Fmizuno-bk%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2025/04/IMG_0685.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2025/04/IMG_0700-415x311.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2025/04/IMG_0686-415x311.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3229.884593758316!2d139.6972735!3d35.949793!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018bf5372520383%3A0xd917b4250438beca!2z5rC06YeO5pu45bqX!5e0!3m2!1sja!2sjp!4v1744417085235!5m2!1sja!2sjp",
+    "geo_id": "40",
+    "ward": "岩槻区",
+    "latitude": 35.94921,
+    "longitude": 139.69717,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "モッキンカン 木の森美術館　しまずよしのり",
+    "list_label": "モッキンカン 木の森美術館　しまずよしのり \n 不思議な森の世界に導かれる住宅街の美術館",
+    "tagline": "不思議な森の世界に導かれる住宅街の美術館",
+    "fiscal_year": "令和4年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/mokkinkan/",
+    "body_text": "オープンの経緯と名前の由来\nしまず夫妻が2012年に自宅に併設してオープンした美術館。しまず氏は40代の頃に木彫彫刻家として認められ、日本各地や米国で個展を開いた。ある個展で長野県栄村の村長から「ぜひうちの村にきて制作してほしい。木材もアトリエも全部用意するから身ひとつで来てください」という誘いを受け、信州育ちのしまず氏はお役に立てるならと山深い村に移住して制作に没頭。作品を発表することもなく一心不乱に制作に打ち込むこと20年あまり。浦和に戻って来た時には発表の場が失われていた。膨大な作品をできるだけ大勢の人に観てもらいたいとの想いから、自宅を改装して美術館を開設する運びとなった。\nモッキンと聞いてまず思い浮かべるのが木琴。しまず氏の詩に、「木琴の音が聞こえるよ」という一節があり、ここからとって名付けたとのこと。きつつきの音、風が通る梢の音、木を彫る音、まさにそうした森の音が聞こえてくるような美術館だ。\nどんなところ\n浦和駅からバスで10分ほどの住宅街に建っていて、アンティークのおしゃれなドアを挟んで左手が自宅、右手が美術館になっている。一階に入ると、部屋のいたるところに木の作品、木の自然な色を生かして創った大きな彫刻やレリーフなどがある。２階に通じる階段の壁には絵画や書が飾られている。２階にはびっくりするほど大きな木彫の動物や虫たちが置かれ、まるで不思議な夢の世界の森に迷い込んだような気持ちにさせられる。小品を動かしながら制作したアニメーションを見ることもできる。美術学校の知人からしまず氏の個性が失われるとの助言を受け、美術学校の教育は一切受けず個性を生かした作品の数々は、木彫にとどまらず絵画、詩、絵本、書など幅広いジャンルにその才能を発揮しており、この美術館でそれらの作品に触れることができる。\nこれから\n初めは気難しい芸術家肌の方なのかと感じたしまず氏だが、話すうちにとても気さくでユーモアのある方だとわかった。パートナーで館長でもあるリコさんができるだけ多くの人々に作品を観てもらいたいと強く願っているのが伝わってくる。とても大きく重たい木彫作品が多いため個展を開くのもそう簡単ではなく、この美術館に来て観てもらうのが一番だという。ワークショップを開いたりしていろいろな試みをしているが、お二人の掛け合い漫才のようなユーモアあふれる会話をYouTubeで発信していこうという企画も立てている。",
+    "address": "さいたま市南区大谷口593",
+    "phone": "048-881-0524\n080-5072-3842",
+    "contact_role": "館長",
+    "contact_person": "島津 リコ",
+    "basic_info": {
+      "住所": "さいたま市南区大谷口593",
+      "電話番号": "048-881-0524\n080-5072-3842",
+      "館長": "島津 リコ",
+      "HP/SNS": "モッキンカン\nしまずよしのり　モッキンカン 木の森美術館"
+    },
+    "basic_info_links": {
+      "HP/SNS": [
+        "http://www.mokkinkan.com/",
+        "https://shimazuyoshinori.com/"
+      ]
+    },
+    "link_urls": [
+      "http://www.mokkinkan.com/",
+      "https://shimazuyoshinori.com/",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Fmokkinkan%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-1-5-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-2-4.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-3-5.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3233.359480384225!2d139.67218481220206!3d35.864706472414!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018eaa3e14a2ddf%3A0x999ae8cc8df030e4!2z44Oi44OD44Kt44Oz44Kr44Oz5pyo44Gu5qOu576O6KGT6aSo!5e0!3m2!1sja!2sjp!4v1737697743252!5m2!1sja!2sjp",
+    "geo_id": "41",
+    "ward": "南区",
+    "latitude": 35.86449,
+    "longitude": 139.67477,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "師岡制作所",
+    "list_label": "師岡制作所 \n 『アーティストランスペース』本物のアートに触れてもらう場所",
+    "tagline": "『アーティストランスペース』本物のアートに触れてもらう場所",
+    "fiscal_year": "令和5年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/morooka-seisakujo/",
+    "body_text": "オープンのきっかけ\n大家さんの師岡ご夫妻が金属加工業『師岡製作所』を営まれていたが、2012 年5 月に会社を解散し、工場を何か有効に活用できないかと考えていた所、息子さんの同級生でもあるアーティストの平川恒太さんが作品制作の場として使用することになる。2012 年10 月、改修工事を経て小左誠一郎さん、伊勢周平さんの3 人の共同アトリエとしてスタートした。金属加工業時代の師岡さんの思いを残したいと『師岡制作所』とスペースを名付けた。2022 年、初期メンバーの脱退を機に新たな試みとして2 階に展示や交流できるスペースを作り、プロのアーティストの仕事を少しでも知ってもらい、地域の文化発展の拠点にしようと始めた。\nどんな場所なの？\nこれまでの10 年間、18 名のアーティストが共同スタジオとして非公開で運営をしてきた。2022 年に改修工事を行い、アーティストランスペースとして生まれ変わった。１階には大型作品が制作できる広い作業スペースがあり、２階が作品展示スペースとイベントスペースになっている。通常は、アーティスト３名の共同スタジオで非公開だが、春と秋に企画展を行い一般に公開している。また『師岡制作所サポーター会員』になると毎月、勉強会などのイベント情報が得られ参加することができる。スペース内には有名アーティストの作品やデザイナーズ家具などが多数設置されており、プロの制作現場で『本物のアート』を体験することができる。\n今後について\nさいたま市は、まだ本物のアートに触れられるスペースが少なく感じる。質の高いアート作品を身近に見られる環境を作り、さいたま市の文化や生活を豊かにしていき、アート（文化）のある街作りに繋げ、さらには地元のアーティストやアートラバーが集えるミーティングスポットになればと語る。実際さいたま市には多くのアーティストが在住し制作をしているが、アーティストランスペースとして公開している場所は少なく、ミーティングスポットと呼べるアートの交流拠点も見当たらない。地元アーティストと繋がり、地元にも目を向けてもらい、海外で重要視されているアートのミーティングスポットが市内あちこちに誕生しそれらのスポットを巡れるさいたま市になればもっと豊かになるだろう。海外のアーティストランスペースとの交流やレジデンスなども今後行なっていきたいとも話された。",
+    "address": "",
+    "phone": "",
+    "contact_role": "HP/SNS",
+    "contact_person": "facebook\nInstagram\nX",
+    "basic_info": {
+      "HP/SNS": "facebook\nInstagram\nX"
+    },
+    "basic_info_links": {
+      "HP/SNS": [
+        "https://www.facebook.com/profile.php?id=100090914515699",
+        "https://www.instagram.com/morooka_seisaku/",
+        "https://x.com/morookaseisaku"
+      ]
+    },
+    "link_urls": [
+      "https://www.facebook.com/profile.php?id=100090914515699",
+      "https://www.instagram.com/morooka_seisaku/",
+      "https://x.com/morookaseisaku",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Fmorooka-seisakujo%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/10/アセット-1-2-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/10/アセット-2-2-415x589.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3231.204213186639!2d139.68748407663873!3d35.91750117251205!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018c1717d20394b%3A0xffe2586638545c0f!2z5bir5bKh5Yi25L2c5omA44Ku44Oj44Op44Oq44O8KOe-juihk-mkqCk!5e0!3m2!1sja!2sjp!4v1737693997699!5m2!1sja!2sjp",
+    "geo_id": "42",
+    "ward": "見沼区",
+    "latitude": 35.91750117251205,
+    "longitude": 139.68748407663873,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "google_map_url"
+  },
+  {
+    "title": "柳沢画廊",
+    "list_label": "柳沢画廊 \n 柳沢画廊のこだわりは、価値ある作品を、責任をもって販売していること",
+    "tagline": "柳沢画廊のこだわりは、価値ある作品を、責任をもって販売していること",
+    "fiscal_year": "令和4年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/yanagisawagallery/",
+    "body_text": "オープンのきっかけ、経緯は？\nオーナーの柳沢さんは、若いころからグラフィックやイラストレーションが好きで、よく画廊や美術館に出かけては好きな作品を楽しんでいた。いろんなコレクションを見ていく中で自分自身の「好きなアーティスト」も明確に見えてくる。もしも画廊を開くならば、こんな絵を飾ってみたい。あんなことをしてみようか。そんなイメージも膨らんでいた。\n35歳の時に、目の前の旧中山道セットバック工事がきっかけで３階建てのビルを建て、１階は柳沢さんのお父様が運営していた判子屋（深明堂）。建物の２階、３階をご両親の理解もあり、柳沢さんがやってみたかったお仕事の一つとして画廊経営が始まった。\nどんな場所なの？\n浦和駅西口から旧中山道沿いに歩き玉蔵院の近く。何気なく上を向きながら歩いていると「柳沢画廊」という看板が目に入る。柳沢画廊はなぜか版画作家さんが中心となって個展を開いている。開廊当時は油絵作品を購入し個展で出展するとなると非常に高額であった。一方、版画作品は１～２万円程度で購入することができるため、気軽に見て「欲しいな」と思ったら購入しやすい金額だった。常に若くてクォリティーの高い作家さんの企画展を開催し、作家を応援している場所。\n70歳を過ぎた柳沢さんは、これからもゆっくり楽しみながら画廊経営進めていかれるとのこと。\nアートとの繋がりは？\n柳沢画廊は開廊当時、近隣にはすでに「コバルト画房」や「アートスペース717」があり、画廊を運営していく上で影響を受けた店舗の一つだという。\n浦和には、1951年（昭和26年）から版画家でマルチアーティストの「瑛九」が住んでいた。瑛九のご自宅に、池田満寿夫たち若手作家がよく来ていたそう。また、当時は自宅に絵画やアート作品を置く人は少なく、どちらかというと病院などの一室に飾る絵画として求められることが多かった。\nアイルランドのアーティスト「リチャード・ゴーマン」との出会いをきっかけに海外アーティストとの繋がりが増える。2004年ゴーマンが、柳沢画廊で個展を開いたことがあるアイルランド、ドイツ、オランダ、日本のアーティストのグループ展をアイルランドのギャラリーで企画。柳沢さん自身1995年、2004年、2013年、2020年にアイルランドを訪れ、現在も親交は続いている。2023年6月からアイルランド人作家20人、日本人作家20人の作品を集め日本各地を巡回する展覧会がスタート。2024年には柳沢画廊が展覧会の会場になる予定だ。",
+    "address": "さいたま市浦和区高砂2-14-16",
+    "phone": "048-822-2712",
+    "contact_role": "代表",
+    "contact_person": "柳沢 敏明",
+    "basic_info": {
+      "住所": "さいたま市浦和区高砂2-14-16",
+      "電話番号": "048-822-2712",
+      "代表": "柳沢 敏明",
+      "HP": "ウェブサイト\nFacebook\nInstagram"
+    },
+    "basic_info_links": {
+      "HP": [
+        "http://www.yanagisawagallery.com/",
+        "https://www.facebook.com/JobEvaYan",
+        "https://www.instagram.com/yanagisawa_gallery/"
+      ]
+    },
+    "link_urls": [
+      "http://www.yanagisawagallery.com/",
+      "https://www.facebook.com/JobEvaYan",
+      "https://www.instagram.com/yanagisawa_gallery/",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Fyanagisawagallery%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-1-7-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-2-6.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-3-7.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3233.58360730427!2d139.65090871220164!3d35.85921247241585!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018ea81ba755d81%3A0x795926b41e461a52!2z5p-z5rKi55S75buK!5e0!3m2!1sja!2sjp!4v1737698453427!5m2!1sja!2sjp",
+    "geo_id": "43",
+    "ward": "浦和区",
+    "latitude": 35.85877,
+    "longitude": 139.65298,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "ラルゴ（Largo）",
+    "list_label": "ラルゴ（Largo） \n ゆるやかに、繋がり、時が流れてゆく、絵画と音楽の両方を楽しめるギャラリー・カフェ",
+    "tagline": "ゆるやかに、繋がり、時が流れてゆく、絵画と音楽の両方を楽しめるギャラリー・カフェ",
+    "fiscal_year": "令和4年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/largo/",
+    "body_text": "絵画と音楽の両方を楽しめるギャラリー\n与野で生まれ育った店長・橋本泰代さんのお母様・増田俊子さんが趣味で絵を描かれ、美術団体の公募展に出品した大きな作品もあり、ちょっと素敵な空間でのんびりと、仲間と一緒に発表できる場として。そして、音楽教師であったお父様が生演奏もできて、ご自身が好きな音楽をお気に入りのオーディオで聴ける場として。絵画と音楽の両方を楽しめる。また建物自体も、１階はギャラリー2階以上は住居の5階建てのマンション。住む人が、１人暮らしから家族が増えても「生活の中でアートを身近に感じられたら」との想いも込めて2009年2月11日にオープンした。開設のための構想時、橋本さんは絵も音楽もよくわからず「自分は何をしよう？」と考えカフェ担当として、お菓子とコーヒーの専門学校で学んだそう。カフェ・メニューも素敵なものが多く、注目！\nゆるやかに、繋がり、時が流れてゆく\n店名・ラルゴ（Largo）は、イタリア語で“幅のある、広い、ゆったりとした”の意味。ギャラリー開設当初は積極的に宣伝しなかった。『浦和画家』という言葉があるように、絵を描く人、絵を観る心に余白のある人が多い風土に感じる。絵を見に立ち寄る「日常」で、展示に来場すると、実は同級生や先輩など繋がりのある方ということも。私設宣伝部長的なお客様がいらっしゃったり、埼玉新聞社の取材を受けたこともあり、いつの間にか店の存在が広がっていった。幼い頃の自分を知っている人たちのいる街で、カッコをつけることなく自然体でありながら、反面「ちゃんとしなきゃ」と、気を引き締めながら市内のギャラリーの先人達が築いてくれた素地があってこその「ギャラリーへ足を運ぼう」という、お客様の自然な気持ちを大切にしたいと、真摯かつ丁寧に、お話してくれた。\nプロも賞賛する音の環境\n展示だけでなく、音楽演奏での発表もできる場。ギャラリー内には、真空管のオーディオ設備もあり、こだわりが感じられる。グランドピアノなどの演奏では、空間そのものの音の響きがとても心地よい。この環境で演奏したくてリピートする音楽家もいるそうだ。なので、予約がなかなか困難なこともある。クラシック、JAZZの公演もあり、一度は聴いてみるべし！である。\n再開発が進む街での今後\n今後も、地域の再開発で高層マンションの建設が続く中、人の流れがどう変わっていくのか楽しみではあるが、今までと変わらず、緩やかに、ゆったりと、とどまることなく、流れに任せながら、継続していきたい。プロ・アマを問わないが、アマチュアの方で、一生懸命で熱意のある方々には特に門戸を開いて、利用していただきたい、と意欲を語られた。",
+    "address": "さいたま市中央区鈴谷2丁目725-1ソレイユ南与野1F",
+    "phone": "048-749-1721",
+    "contact_role": "代表",
+    "contact_person": "橋本 泰代",
+    "basic_info": {
+      "住所": "さいたま市中央区鈴谷2丁目725-1ソレイユ南与野1F",
+      "電話番号": "048-749-1721",
+      "代表": "橋本 泰代",
+      "HP/SNS": "ウェブサイト\nFacebook"
+    },
+    "basic_info_links": {
+      "HP/SNS": [
+        "https://r.goope.jp/gallerycafelargo/",
+        "https://www.facebook.com/gallerycafe.largo"
+      ]
+    },
+    "link_urls": [
+      "https://r.goope.jp/gallerycafelargo/",
+      "https://www.facebook.com/gallerycafe.largo",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Flargo%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-1-3-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/名称未設定-7.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/アセット-3-3.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3233.193768897668!2d139.62497681220196!3d35.86876807241276!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018c1952b149589%3A0x7c01685aba817cdf!2sLargo!5e0!3m2!1sja!2sjp!4v1737697139349!5m2!1sja!2sjp",
+    "geo_id": "44",
+    "ward": "中央区",
+    "latitude": 35.86861,
+    "longitude": 139.6274,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  },
+  {
+    "title": "路地裏Garage Market",
+    "list_label": "路地裏Garage Market \n 若者たちの魅力が湧き溢れる「パワースポット」楽しい発信ひろば・交流ひろば基地",
+    "tagline": "若者たちの魅力が湧き溢れる「パワースポット」楽しい発信ひろば・交流ひろば基地",
+    "fiscal_year": "令和3年度",
+    "url": "https://artscouncil-saitama.jp/library/survey/rojiuragarage-market/",
+    "body_text": "オープンのきっかけ、経緯は？\nオーナーの横山拓さん（3３歳）は思い立ったらすぐ始める行動派。2011年に自作のキャンピングカーを完成させ「旅商人珈琲屋」としてコーヒーを販売しながら日本一周の旅に。東日本大震災の時から災害現場でのボランティア活動が始まり、災害NＰO「チーム旅商人」を立ち上げる。日本一周、様々な出会いと経験を経て、生まれ育った地元・与野を盛り上げたいという想いで「路地裏Garage Market」を2014年11月にオープンさせたそうです。\nどんな場所なの？\n施設の形態はマルシェ方式。ここに集まる人々は様々、オーナーのコーヒー販売をはじめ、ごはん屋さん、オーガニック野菜、お菓子、こだわりのアジアン雑貨販売、占い、マッサージ、音楽ライブ、アートカレッジ等、たのしさのごちゃまぜの場所です。\nアートとの繋がりと未来展望は？\n開店当初からマルシェに出店する方たち。2017年から「寿の色さん」を講師に始まった「アートカレッジ」が進められている。これからも“かかわる全ての人で創るサグラダファミリア”として、いろんなアーティスト方にかかわって欲しいそうです。\n来年は何か新しいことに挑戦したいと、熱く語ってくれました。これからも目が離せない路地裏でした。",
+    "address": "さいたま市中央区鈴谷7-7-3",
+    "phone": "090-4458-6349",
+    "contact_role": "代表",
+    "contact_person": "横山 拓",
+    "basic_info": {
+      "住所": "さいたま市中央区鈴谷7-7-3",
+      "電話番号": "090-4458-6349",
+      "代表": "横山 拓",
+      "HP/SNS": "ウェブサイト\nFacebook\nInstagram\nX"
+    },
+    "basic_info_links": {
+      "HP/SNS": [
+        "https://www.rojiuragarage-market.com",
+        "https://www.facebook.com/rojiuragaragemarket/",
+        "https://www.instagram.com/rojiura_garage_market/",
+        "https://x.com/rojiura_garage"
+      ]
+    },
+    "link_urls": [
+      "https://www.rojiuragarage-market.com",
+      "https://www.facebook.com/rojiuragaragemarket/",
+      "https://www.instagram.com/rojiura_garage_market/",
+      "https://x.com/rojiura_garage",
+      "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fartscouncil-saitama.jp%2Flibrary%2Fsurvey%2Frojiuragarage-market%2F&src=sdkpreparse",
+      "https://twitter.com/share?ref_src=twsrc%5Etfw"
+    ],
+    "image_urls": [
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/asset-4-1-1280x720.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/asset-1-17.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/asset-2-16.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/asset-3-17.jpg",
+      "https://artscouncil-saitama.jp/wp-content/uploads/2024/11/asset-5-1.jpg"
+    ],
+    "google_map_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3232.949317247317!2d139.62186821220226!3d35.8747588724109!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6018c190d1e18271%3A0xec7176bf5f94be50!2z6Lev5Zyw6KOPR2FyYWdlTWFya2V0!5e0!3m2!1sja!2sjp!4v1737700690294!5m2!1sja!2sjp",
+    "geo_id": "45",
+    "ward": "中央区",
+    "latitude": 35.87492,
+    "longitude": 139.62453,
+    "geo_source_latitude": "",
+    "geo_source_longitude": "",
+    "geo_match_key": "url",
+    "geo_coordinate_source": "artmap.geo.csv"
+  }
+];
+        let markersData = [];
+
+        function getPrimaryExternalUrl(item) {
+            const basicLinks = item.basic_info_links || {};
+            for (const urls of Object.values(basicLinks)) {
+                if (Array.isArray(urls) && urls.length > 0) return urls[0];
+            }
+
+            const links = Array.isArray(item.link_urls) ? item.link_urls : [];
+            return links.find(url => !url.includes('facebook.com/sharer') && !url.includes('twitter.com/share')) || '';
+        }
+
+        function normalizeItem(item, index) {
+            const categoryParts = [item.fiscal_year, item.ward].filter(Boolean);
+            const hpSnsLabels = item.basic_info && item.basic_info['HP/SNS'] ? item.basic_info['HP/SNS'] : '';
+
+            return {
+                id: item.geo_id || String(index + 1),
+                lat: Number(item.latitude),
+                lon: Number(item.longitude),
+                name: item.title || '名称不明',
+                tagline: item.tagline || '',
+                ward: item.ward || '',
+                address: item.address || item.basic_info?.['住所'] || item.basic_info?.['所在地'] || '',
+                phone: item.phone || item.basic_info?.['電話番号'] || '',
+                contact_person: [item.contact_role, item.contact_person].filter(Boolean).join(' '),
+                hp_sns: hpSnsLabels,
+                url: getPrimaryExternalUrl(item),
+                article_url: item.url || '',
+                category: categoryParts.join(' / '),
+                functions: '',
+                source_program: item.fiscal_year || '',
+                status_note: item.geo_coordinate_source === 'google_map_url' ? '座標はGoogle Maps埋め込みURLから補完' : '',
+                notes: '',
+                body_text: item.body_text || '',
+                image_urls: Array.isArray(item.image_urls) ? item.image_urls : []
+            };
+        }
+
+        async function loadMarkersData() {
+            markersData = EMBEDDED_ITEMS
+                .map(normalizeItem)
+                .filter(item => Number.isFinite(item.lat) && Number.isFinite(item.lon));
+        }
+
+        function escapeAttr(value) {
+            return String(value || '')
+                .replace(/&/g, '&amp;')
+                .replace(/"/g, '&quot;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+
+        function renderEyecatch(urls, title) {
+            if (!Array.isArray(urls) || urls.length === 0) return '';
+
+            const [eyecatch] = urls;
+            return `
+                <div class="b-media">
+                    <figure class="b-eyecatch">
+                        <img src="${escapeAttr(eyecatch)}" alt="${escapeAttr(title)}" loading="lazy">
+                        <figcaption>ART RESOURCE SURVEY</figcaption>
+                    </figure>
+                </div>
+            `;
+        }
+
+        function renderGallery(urls, title) {
+            if (!Array.isArray(urls) || urls.length <= 1) return '';
+
+            const gallery = urls.slice(1);
+            return `
+                <div class="b-media">
+                    <div class="b-gallery">
+                        ${gallery.map((url, i) => `
+                            <figure>
+                                <img src="${escapeAttr(url)}" alt="${escapeAttr(`${title} ${i + 2}`)}" loading="lazy">
+                            </figure>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // --- 1. Layout Toggle Logic ---
+        const btnBooklet = document.getElementById('btn-layout-booklet');
+        const btnMap = document.getElementById('btn-layout-map');
+        const bookletPane = document.getElementById('booklet-pane');
+        const closeBookletBtn = document.getElementById('close-booklet');
+
+        function setLayout(mode) {
+            if(mode === 'map') {
+                document.body.classList.add('map-dominant');
+                btnMap.classList.add('active');
+                btnBooklet.classList.remove('active');
+                if(activeId === null) bookletPane.classList.add('hidden');
+            } else {
+                document.body.classList.remove('map-dominant');
+                btnBooklet.classList.add('active');
+                btnMap.classList.remove('active');
+                // In booklet mode, if no active ID, show empty state, but unhide pane
+                bookletPane.classList.remove('hidden');
+            }
+            // Force map resize recalculation
+            setTimeout(() => map.invalidateSize(), 300);
+        }
+
+        btnBooklet.addEventListener('click', () => setLayout('booklet'));
+        btnMap.addEventListener('click', () => setLayout('map'));
+        
+        closeBookletBtn.addEventListener('click', () => {
+            bookletPane.classList.add('hidden');
+            if(activeId !== null) {
+                const listItem = document.getElementById(`list-item-${activeId}`);
+                if(listItem) listItem.classList.remove('active');
+                activeId = null;
+            }
+        });
+
+        // --- 2. Filter Logic ---
+        const categoryFilter = document.getElementById('category-filter');
+        const uniqueCategories = new Set();
+
+        function populateCategoryFilter() {
+            categoryFilter.innerHTML = '<option value="">すべての年度・区</option>';
+            uniqueCategories.clear();
+
+            markersData.forEach(d => {
+                if(d.category) d.category.split('/').forEach(c => uniqueCategories.add(c.trim()));
+                if(d.functions) d.functions.split('/').forEach(c => uniqueCategories.add(c.trim()));
+            });
+
+            Array.from(uniqueCategories).sort().forEach(c => {
+                if(!c) return;
+                const opt = document.createElement('option');
+                opt.value = c;
+                opt.textContent = c;
+                categoryFilter.appendChild(opt);
+            });
+        }
+
+        categoryFilter.addEventListener('change', applyFilter);
+
+        // --- 3. Map Initialization ---
+        const map = L.map('map', { zoomControl: false }).setView([35.8617, 139.6455], 11);
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+        const osm = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; CARTO',
+            subdomains: 'abcd',
+            maxZoom: 20
+        });
+
+        const gsiStd = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
+            attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>',
+            maxZoom: 18
+        });
+
+        const gsiOrthoLatest = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg', {
+            attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>',
+            maxZoom: 18
+        });
+
+        const gsiOrtho2007 = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/ort/{z}/{x}/{y}.jpg', {
+            attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>',
+            minNativeZoom: 14,
+            maxZoom: 18
+        });
+
+        const gsiOrtho1987 = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/gazo4/{z}/{x}/{y}.jpg', {
+            attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>',
+            minZoom: 10,
+            maxZoom: 17
+        });
+
+        const gsiOrtho1984 = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/gazo3/{z}/{x}/{y}.jpg', {
+            attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>',
+            minZoom: 10,
+            maxZoom: 17
+        });
+
+        const gsiOrtho1979 = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/gazo2/{z}/{x}/{y}.jpg', {
+            attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>',
+            minZoom: 10,
+            maxZoom: 17
+        });
+
+        const gsiOrtho1974 = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/gazo1/{z}/{x}/{y}.jpg', {
+            attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>',
+            minZoom: 10,
+            maxZoom: 17
+        });
+
+        const gsiOrtho1961 = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/ort_old10/{z}/{x}/{y}.png', {
+            attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>',
+            minZoom: 10,
+            maxZoom: 17
+        });
+
+        const gsiOrtho1945 = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/ort_USA10/{z}/{x}/{y}.png', {
+            attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>',
+            minZoom: 10,
+            maxZoom: 17
+        });
+
+        osm.addTo(map);
+
+        const baseMaps = {
+            "OpenStreetMap": osm,
+            "地理院地図（標準）": gsiStd,
+            "航空写真（最新）": gsiOrthoLatest,
+            "航空写真（2007年以降・オルソ画像）": gsiOrtho2007,
+            "航空写真（1987年～1990年）": gsiOrtho1987,
+            "航空写真（1984年～1986年）": gsiOrtho1984,
+            "航空写真（1979年～1983年）": gsiOrtho1979,
+            "航空写真（1974年～1978年）": gsiOrtho1974,
+            "航空写真（1961年～1969年）": gsiOrtho1961,
+            "航空写真（1945年～1950年）": gsiOrtho1945
+        };
+
+        L.control.layers(baseMaps, null, { position: 'topright' }).addTo(map);
+
+        const markersLayer = L.featureGroup().addTo(map);
+        const listContainer = document.getElementById('location-list');
+        const contentContainer = document.getElementById('content-container');
+        const emptyState = document.getElementById('empty-state');
+        
+        let activeId = null;
+        let mapMarkers = [];
+        let listElements = [];
+        let userMarker = null;
+
+        // --- 4. Render Data ---
+        function renderAll() {
+            markersLayer.clearLayers();
+            listContainer.innerHTML = '';
+            mapMarkers = [];
+            listElements = [];
+
+            markersData.forEach((data, index) => {
+                const marker = L.marker([data.lat, data.lon])
+                    .on('click', () => selectLocation(index));
+                
+                mapMarkers[index] = marker;
+
+                const li = document.createElement('li');
+                li.className = 'list-item';
+                li.id = `list-item-${index}`;
+                li.innerHTML = `<h3>${data.name}</h3><p>${data.ward ? data.ward + ' / ' : ''}${data.address || '住所不明'}</p>`;
+                li.onclick = () => selectLocation(index);
+                
+                listElements[index] = li;
+                marker.addTo(markersLayer);
+                listContainer.appendChild(li);
+            });
+
+            if (markersData.length > 0) {
+                map.fitBounds(markersLayer.getBounds(), { padding: [20, 20] });
+            } else {
+                listContainer.innerHTML = '<li class="list-item"><h3>データがありません</h3><p>JSONを確認してください。</p></li>';
+            }
+        }
+
+        function applyFilter() {
+            const selected = categoryFilter.value;
+            let bounds = new L.LatLngBounds();
+            let hasVisible = false;
+
+            markersData.forEach((data, index) => {
+                const cats = (data.category + '/' + data.functions).split('/').map(s => s.trim());
+                const isMatch = selected === '' || cats.includes(selected);
+
+                if (isMatch) {
+                    if (!markersLayer.hasLayer(mapMarkers[index])) markersLayer.addLayer(mapMarkers[index]);
+                    listElements[index].style.display = 'block';
+                    bounds.extend(mapMarkers[index].getLatLng());
+                    hasVisible = true;
+                } else {
+                    if (markersLayer.hasLayer(mapMarkers[index])) markersLayer.removeLayer(mapMarkers[index]);
+                    listElements[index].style.display = 'none';
+                }
+            });
+
+            if (hasVisible) {
+                map.fitBounds(bounds, { padding: [30, 30], maxZoom: 15 });
+            }
+        }
+
+        function selectLocation(index) {
+            const data = markersData[index];
+            const targetZoom = 15;
+            
+            if(activeId !== null) {
+                const prevLi = document.getElementById(`list-item-${activeId}`);
+                if (prevLi) prevLi.classList.remove('active');
+            }
+            const currentLi = document.getElementById(`list-item-${index}`);
+            if (currentLi) currentLi.classList.add('active');
+            activeId = index;
+            
+            // --- Offset Logic to prevent booklet covering the pin ---
+            const isMapDominant = document.body.classList.contains('map-dominant');
+            const isMobile = window.innerWidth <= 768;
+            
+            if (isMapDominant) {
+                // Calculate pixel offset
+                let targetPoint = map.project([data.lat, data.lon], targetZoom);
+                if (isMobile) {
+                    // Booklet is bottom sheet, shift center down to move pin UP
+                    targetPoint = targetPoint.add([0, window.innerHeight * 0.2]); 
+                } else {
+                    // Booklet is on right (450px wide + margin), shift center right to move pin LEFT
+                    targetPoint = targetPoint.add([250, 0]); 
+                }
+                const targetLatLng = map.unproject(targetPoint, targetZoom);
+                map.flyTo(targetLatLng, targetZoom, {duration: 0.5});
+            } else {
+                // Regular center
+                map.flyTo([data.lat, data.lon], targetZoom, {duration: 0.5});
+            }
+            
+            // Generate HTML
+            emptyState.style.display = 'none';
+            bookletPane.classList.remove('hidden');
+            
+            let catsHTML = '';
+            if(data.category) catsHTML += data.category.split('/').map(c => `<span class="b-tag">${c.trim()}</span>`).join('');
+            if(data.functions) catsHTML += data.functions.split('/').map(f => `<span class="b-tag">${f.trim()}</span>`).join('');
+            const eyecatchHTML = renderEyecatch(data.image_urls, data.name);
+            const galleryHTML = renderGallery(data.image_urls, data.name);
+            
+            const html = `
+                <div class="booklet-content active">
+                    <div class="b-header">
+                        <h2 class="b-title">${data.name}</h2>
+                        ${data.tagline ? `<p class="b-tagline">${data.tagline}</p>` : ''}
+                    </div>
+                    ${eyecatchHTML}
+                    ${data.body_text ? `
+                    <div class="b-section">
+                        <span class="b-label">本文</span>
+                        <p class="b-value b-body-text">${data.body_text}</p>
+                    </div>
+                    ` : ''}
+                    ${galleryHTML}
+                    <div class="b-grid">
+                        <div class="b-full-width b-section">
+                            <span class="b-label">所在地</span>
+                            <p class="b-value">${data.ward ? `[${data.ward}] ` : ''}${data.address}</p>
+                        </div>
+                        <div class="b-section">
+                            <span class="b-label">連絡先</span>
+                            <p class="b-value">${data.phone || 'ー'}</p>
+                        </div>
+                        <div class="b-section">
+                            <span class="b-label">担当・代表</span>
+                            <p class="b-value">${data.contact_person || 'ー'}</p>
+                        </div>
+                        <div class="b-full-width b-section">
+                            <span class="b-label">年度・区</span>
+                            <div>${catsHTML || '<span class="b-tag">未分類</span>'}</div>
+                        </div>
+                        <div class="b-section">
+                            <span class="b-label">HP・SNS</span>
+                            <p class="b-value">${data.hp_sns || 'ー'}</p>
+                        </div>
+                        <div class="b-section">
+                            <span class="b-label">リンク</span>
+                            <p class="b-value">
+                                ${data.url ? `<a href="${data.url}" target="_blank" class="b-link">ウェブサイト ↗</a>` : 'ー'}<br>
+                                ${data.article_url ? `<a href="${data.article_url}" target="_blank" class="b-link">関連記事 ↗</a>` : ''}
+                            </p>
+                        </div>
+                        ${data.notes || data.status_note ? `
+                        <div class="b-full-width b-section">
+                            <span class="b-label">備考</span>
+                            <p class="b-value" style="font-size:0.95rem;">
+                                ${data.status_note ? data.status_note + '<br>' : ''}
+                                ${data.notes || ''}
+                            </p>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+            
+            contentContainer.innerHTML = html;
+            bookletPane.scrollTop = 0;
+            const booklet = bookletPane.querySelector('.booklet');
+            if (booklet) booklet.scrollTop = 0;
+            if (currentLi && !isMobile) {
+                currentLi.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+            }
+        }
+
+        // --- 5. Geolocation ---
+        document.getElementById('btn-geolocation').addEventListener('click', () => {
+            if (!navigator.geolocation) {
+                alert('お使いのブラウザは現在地取得に対応していません。');
+                return;
+            }
+            const btn = document.getElementById('btn-geolocation');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '⏳ 取得中...';
+            
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    
+                    if (userMarker) map.removeLayer(userMarker);
+                    
+                    const userIcon = L.divIcon({
+                        className: 'user-marker',
+                        html: '<div style="width: 16px; height: 16px; background-color: #3498db; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 10px rgba(0,0,0,0.5);"></div>',
+                        iconSize: [22, 22],
+                        iconAnchor: [11, 11]
+                    });
+                    
+                    userMarker = L.marker([lat, lon], {icon: userIcon}).addTo(map)
+                        .bindPopup("現在地").openPopup();
+                        
+                    map.flyTo([lat, lon], 14, {duration: 1});
+                    btn.innerHTML = originalText;
+                },
+                (error) => {
+                    console.error(error);
+                    alert('現在地の取得に失敗しました。ブラウザの権限設定をご確認ください。');
+                    btn.innerHTML = originalText;
+                },
+                { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+            );
+        });
+
+        loadMarkersData()
+            .then(() => {
+                populateCategoryFilter();
+                renderAll();
+            })
+            .catch(error => {
+                console.error(error);
+                listContainer.innerHTML = `<li class="list-item"><h3>データを読み込めませんでした</h3><p>${error.message}</p></li>`;
+                emptyState.innerHTML = '<p>埋め込みデータを読み込めませんでした。</p>';
+            });
+    </script>
+</body>
+</html>

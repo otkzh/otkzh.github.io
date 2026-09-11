@@ -188,9 +188,6 @@ const activities = [
             </div>
 
             <div class="front-actions">
-              <a class="card-inline-link" href="/redirect/"
-                >活動を見る <span>↗</span></a
-              >
               <nav class="contact-links" aria-label="メールとSNS">
                 <a
                   href="mailto:otkzh77@gmail.com"
@@ -1241,13 +1238,11 @@ const activities = [
     }
 
     .front-actions {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      gap: 0.5rem;
+      display: flex;
+      justify-content: flex-end;
       margin-top: clamp(0.8rem, 3vh, 1.5rem);
     }
 
-    .card-inline-link,
     .memo-all-link {
       display: flex;
       align-items: center;
@@ -1267,7 +1262,6 @@ const activities = [
         transform 180ms ease;
     }
 
-    .card-inline-link:hover,
     .memo-all-link:hover {
       color: #fff;
       box-shadow: 1px 1px 0 rgba(17, 19, 24, 0.16);
@@ -1283,9 +1277,10 @@ const activities = [
     .contact-links a {
       display: grid;
       width: clamp(2.35rem, 10vw, 2.7rem);
-      min-height: 2.7rem;
+      aspect-ratio: 1;
       place-items: center;
       border: 1px solid var(--ink);
+      border-radius: 50%;
       color: var(--ink);
       text-decoration: none;
       transition:
@@ -1720,15 +1715,8 @@ const activities = [
       margin-top: 0;
     }
 
-    .card-inline-link {
-      padding: 0.55rem 0;
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: clamp(0.72rem, 1.5vw, 0.86rem);
-    }
-
     .contact-links a {
       width: clamp(2.15rem, 3.5vw, 2.7rem);
-      min-height: 2.45rem;
     }
 
     .card-activity {

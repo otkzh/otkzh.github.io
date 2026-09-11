@@ -47,7 +47,7 @@ const { Content } = post
     <Content />
   </article>
   <nav class="article-end" aria-label="メモのナビゲーション">
-    <span>END OF NOTE</span>
+    <span>MEMO NAVIGATION</span>
     <a href="/memo/">すべてのメモへ戻る <i aria-hidden="true">↗</i></a>
   </nav>
 </MemoLayout>
@@ -66,7 +66,22 @@ const { Content } = post
   }
 
   .article-toolbar a {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.28rem 0.58rem;
+    border: 1px solid rgba(54, 92, 255, 0.42);
+    border-radius: 999px;
+    background: rgba(54, 92, 255, 0.07);
     color: var(--blue);
+    text-decoration: none;
+    transition:
+      color 160ms ease,
+      background 160ms ease;
+  }
+
+  .article-toolbar a:hover {
+    background: var(--blue);
+    color: #fff;
   }
 
   .article-toolbar span {
@@ -157,8 +172,17 @@ const { Content } = post
     color: var(--blue);
     font-weight: 600;
     overflow-wrap: anywhere;
-    text-decoration-thickness: 1px;
+    text-decoration-color: rgba(54, 92, 255, 0.45);
+    text-decoration-thickness: 0.14em;
     text-underline-offset: 0.24em;
+    transition:
+      color 160ms ease,
+      text-decoration-color 160ms ease;
+  }
+
+  .memo-prose a:hover {
+    color: #1e3cd8;
+    text-decoration-color: currentColor;
   }
 
   .memo-prose blockquote {
@@ -221,9 +245,23 @@ const { Content } = post
   .article-end a {
     display: flex;
     gap: 2rem;
+    align-items: center;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid var(--ink);
     color: var(--ink);
     font-size: 1rem;
     font-weight: 700;
+    text-decoration: none;
+    transition:
+      color 160ms ease,
+      background 160ms ease,
+      transform 160ms ease;
+  }
+
+  .article-end a:hover {
+    background: var(--ink);
+    color: #fff;
+    transform: translateY(-2px);
   }
 
   .article-end i {
@@ -231,7 +269,7 @@ const { Content } = post
     font-style: normal;
   }
 
-  @media (max-width: 720px) {
+  @media (max-width: 720px), (orientation: landscape) and (max-height: 560px) {
     .article-toolbar {
       flex: none;
       padding-inline: 1rem;
@@ -275,6 +313,53 @@ const { Content } = post
       flex: none;
       margin-inline: 1.35rem;
       padding-block: 1.35rem;
+    }
+  }
+
+  @media (orientation: landscape) and (max-height: 560px) {
+    .article-toolbar {
+      padding: 0.65rem clamp(1.2rem, 3vw, 2rem);
+      font-size: 0.58rem;
+    }
+
+    .memo-prose {
+      max-width: 900px;
+      padding: clamp(1.5rem, 6vh, 2.6rem) clamp(2rem, 6vw, 4.5rem) 3rem;
+    }
+
+    .memo-prose h1 {
+      margin-bottom: clamp(2rem, 8vh, 3rem);
+      font-family: 'Shippori Mincho', serif;
+      font-size: clamp(2.1rem, 5vw, 3.5rem);
+      font-weight: 700;
+      letter-spacing: -0.055em;
+    }
+
+    .memo-prose h2 {
+      margin-top: 2.8rem;
+      font-family: 'Shippori Mincho', serif;
+      font-size: clamp(1.25rem, 2.8vw, 1.8rem);
+    }
+
+    .memo-prose h3 {
+      margin-top: 2rem;
+      font-size: clamp(1rem, 2vw, 1.25rem);
+    }
+
+    .memo-prose p,
+    .memo-prose li {
+      font-size: clamp(0.88rem, 1.55vw, 1rem);
+      line-height: 1.8;
+    }
+
+    .article-end {
+      margin-inline: clamp(1.2rem, 3vw, 2rem);
+      padding-block: 0.8rem;
+    }
+
+    .article-end a {
+      font-family: 'Space Grotesk', 'Zen Kaku Gothic New', sans-serif;
+      font-size: 0.75rem;
     }
   }
 </style>

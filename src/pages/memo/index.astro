@@ -222,7 +222,7 @@ const posts = Object.entries(modules)
     color: #fff;
   }
 
-  @media (max-width: 720px) {
+  @media (max-width: 720px), (orientation: landscape) and (max-height: 560px) {
     .memo-index-hero {
       flex: 0 0 42%;
       grid-template-columns: 1fr;
@@ -288,6 +288,81 @@ const posts = Object.entries(modules)
 
     .memo-list a {
       min-height: 108px;
+    }
+  }
+
+  @media (orientation: landscape) and (max-height: 560px) {
+    body.memo-index .memo-page-shell {
+      display: grid;
+      grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+      grid-template-rows: auto minmax(0, 1fr) auto;
+    }
+
+    body.memo-index .memo-masthead,
+    body.memo-index .memo-footer {
+      grid-column: 1 / -1;
+    }
+
+    .memo-index-hero {
+      grid-column: 1;
+      grid-row: 2;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: clamp(1rem, 5vh, 2rem);
+      min-height: 0;
+      padding: clamp(1.2rem, 5vh, 2rem) clamp(1.5rem, 4vw, 3rem);
+      border-right: 1px solid var(--ink);
+    }
+
+    .memo-index-hero h1 {
+      font-family: 'Shippori Mincho', serif;
+      font-size: clamp(3.8rem, 9vw, 6.2rem);
+      font-weight: 600;
+      letter-spacing: -0.07em;
+    }
+
+    .memo-index-hero > p {
+      padding-top: 0.75rem;
+      font-size: clamp(0.78rem, 1.5vw, 0.9rem);
+      line-height: 1.6;
+    }
+
+    .memo-archive {
+      grid-column: 2;
+      grid-row: 2;
+      min-height: 0;
+      padding: clamp(1rem, 4vh, 1.7rem) clamp(1.2rem, 3vw, 2rem);
+      overflow-y: auto;
+    }
+
+    .archive-heading {
+      margin-bottom: 0.8rem;
+    }
+
+    .archive-heading h2 {
+      font-family: 'Shippori Mincho', serif;
+      font-size: clamp(1.15rem, 2.5vw, 1.65rem);
+    }
+
+    .memo-list {
+      grid-template-columns: 1fr;
+    }
+
+    .memo-list li:nth-child(odd) {
+      border-right: 0;
+    }
+
+    .memo-list a {
+      grid-template-columns: 1.8rem 1fr auto;
+      min-height: clamp(4.1rem, 17vh, 5.3rem);
+      padding: 0.7rem 0;
+    }
+
+    .memo-list h3 {
+      margin-top: 0.3rem;
+      font-family: 'Shippori Mincho', serif;
+      font-size: clamp(0.88rem, 1.8vw, 1.08rem);
     }
   }
 

@@ -71,6 +71,9 @@ typings/
 # Nuxt generate
 dist
 
+# Astro cache
+.astro
+
 # vuepress build output
 .vuepress/dist
 

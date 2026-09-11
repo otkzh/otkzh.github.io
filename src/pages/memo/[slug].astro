@@ -1,0 +1,41 @@
+---
+import type { MarkdownInstance } from 'astro'
+import BaseLayout from '../../layouts/BaseLayout.astro'
+
+interface Props {
+  post: MarkdownInstance<Record<string, unknown>>
+  slug: string
+  title: string
+}
+
+export function getStaticPaths() {
+  const modules = import.meta.glob<MarkdownInstance<Record<string, unknown>>>(
+    '../../content/memo/*.md',
+    { eager: true },
+  )
+
+  return Object.entries(modules).map(([path, post]) => {
+    const slug = path.split('/').at(-1)?.replace(/\.md$/, '') ?? ''
+    const heading = post.rawContent().match(/^#\s+(.+)$/m)?.[1]
+    const frontmatter = post.frontmatter as { title?: string }
+
+    return {
+      params: { slug },
+      props: {
+        post,
+        slug,
+        title: frontmatter.title ?? heading ?? slug,
+      },
+    }
+  })
+}
+
+const { post, title } = Astro.props
+const { Content } = post
+---
+
+<BaseLayout title={title}>
+  <article class="content">
+    <Content />
+  </article>
+</BaseLayout>

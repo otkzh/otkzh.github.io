@@ -1,0 +1,56 @@
+---
+const target = '/?card=activity'
+---
+
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="robots" content="noindex" />
+    <meta http-equiv="refresh" content={`0; url=${target}`} />
+    <link rel="canonical" href="https://otkzh.github.io/?card=activity" />
+    <title>活動 | 太田一穂</title>
+    <script is:inline>
+      window.location.replace('/?card=activity')
+    </script>
+  </head>
+  <body>
+    <main>
+      <p>活動ページへ移動します。</p>
+      <a href={target}>自動的に移動しない場合はこちら</a>
+    </main>
+  </body>
+</html>
+
+<style>
+  :global(*) {
+    box-sizing: border-box;
+  }
+
+  :global(body) {
+    display: grid;
+    min-width: 320px;
+    min-height: 100dvh;
+    margin: 0;
+    place-items: center;
+    background: #f4f3ef;
+    color: #111318;
+    font-family: system-ui, sans-serif;
+  }
+
+  main {
+    padding: 2rem;
+    border: 1px solid #111318;
+    background: #fff;
+  }
+
+  p {
+    margin-top: 0;
+  }
+
+  a {
+    color: #365cff;
+    font-weight: 700;
+  }
+</style>

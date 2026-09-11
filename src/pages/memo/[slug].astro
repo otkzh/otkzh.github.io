@@ -1,6 +1,6 @@
 ---
 import type { MarkdownInstance } from 'astro'
-import BaseLayout from '../../layouts/BaseLayout.astro'
+import MemoLayout from '../../layouts/MemoLayout.astro'
 
 interface Props {
   post: MarkdownInstance<Record<string, unknown>>
@@ -34,8 +34,243 @@ const { post, title } = Astro.props
 const { Content } = post
 ---
 
-<BaseLayout title={title}>
-  <article class="content">
+<MemoLayout title={title} description={`${title} — 太田一穂のメモ。`} kind="article">
+  <div class="article-toolbar">
+    <a href="/memo/">← MEMO INDEX</a>
+    <span>READING NOTE</span>
+  </div>
+  <article class="memo-prose">
     <Content />
   </article>
-</BaseLayout>
+  <nav class="article-end" aria-label="メモのナビゲーション">
+    <span>END OF NOTE</span>
+    <a href="/memo/">すべてのメモへ戻る <i aria-hidden="true">↗</i></a>
+  </nav>
+</MemoLayout>
+
+<style is:global>
+  .article-toolbar {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem clamp(1.25rem, 4vw, 3rem);
+    border-bottom: 1px solid var(--line);
+    font-family: "Space Grotesk", sans-serif;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+  }
+
+  .article-toolbar a {
+    color: var(--blue);
+  }
+
+  .article-toolbar span {
+    color: #6a6f79;
+  }
+
+  .memo-prose {
+    width: min(100%, 900px);
+    min-height: 62vh;
+    margin-inline: auto;
+    padding: clamp(3rem, 8vw, 7rem) clamp(1.35rem, 8vw, 6rem);
+  }
+
+  .memo-prose > :first-child {
+    margin-top: 0;
+  }
+
+  .memo-prose > :last-child {
+    margin-bottom: 0;
+  }
+
+  .memo-prose h1 {
+    position: relative;
+    margin: 0 0 clamp(3.5rem, 8vw, 6rem);
+    padding-bottom: 1.4rem;
+    font-size: clamp(2.8rem, 6.6vw, 5.6rem);
+    font-weight: 900;
+    letter-spacing: -0.07em;
+    line-height: 1.12;
+  }
+
+  .memo-prose h1::after {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: min(9rem, 30%);
+    height: 4px;
+    background: var(--blue);
+    content: '';
+  }
+
+  .memo-prose h2 {
+    margin: clamp(3.5rem, 8vw, 6rem) 0 1.4rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--ink);
+    font-size: clamp(1.5rem, 3.6vw, 2.35rem);
+    font-weight: 800;
+    letter-spacing: -0.045em;
+    line-height: 1.3;
+  }
+
+  .memo-prose h3 {
+    margin: 2.7rem 0 1rem;
+    color: var(--blue);
+    font-size: clamp(1.15rem, 2.5vw, 1.55rem);
+    letter-spacing: -0.025em;
+  }
+
+  .memo-prose h4,
+  .memo-prose h5,
+  .memo-prose h6 {
+    margin: 2rem 0 0.8rem;
+  }
+
+  .memo-prose p,
+  .memo-prose li {
+    font-size: clamp(0.98rem, 1.8vw, 1.1rem);
+    line-height: 1.95;
+  }
+
+  .memo-prose p {
+    margin: 0 0 1.5rem;
+  }
+
+  .memo-prose ul,
+  .memo-prose ol {
+    margin: 1.5rem 0 2rem;
+    padding-left: 1.5rem;
+  }
+
+  .memo-prose li::marker {
+    color: var(--blue);
+    font-family: "Space Grotesk", sans-serif;
+    font-weight: 700;
+  }
+
+  .memo-prose a {
+    color: var(--blue);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.24em;
+  }
+
+  .memo-prose blockquote {
+    margin: 2.5rem 0;
+    padding: 0.4rem 0 0.4rem 1.5rem;
+    border-left: 4px solid var(--blue);
+    color: #4e5360;
+  }
+
+  .memo-prose blockquote p:last-child {
+    margin-bottom: 0;
+  }
+
+  .memo-prose hr {
+    margin: 4rem 0;
+    border: 0;
+    border-top: 1px solid var(--ink);
+  }
+
+  .memo-prose code {
+    padding: 0.12em 0.32em;
+    background: #eceffd;
+    color: #233ebb;
+    font-size: 0.9em;
+  }
+
+  .memo-prose pre {
+    margin: 2rem 0;
+    padding: 1.4rem;
+    border-radius: 0;
+    background: var(--ink);
+    box-shadow: 8px 8px 0 var(--blue);
+    line-height: 1.65;
+  }
+
+  .memo-prose pre code {
+    padding: 0;
+    background: transparent;
+    color: inherit;
+  }
+
+  .article-end {
+    display: flex;
+    justify-content: space-between;
+    gap: 2rem;
+    align-items: center;
+    margin: 0 clamp(1.25rem, 4vw, 3rem);
+    padding: 2rem 0;
+    border-top: 1px solid var(--ink);
+  }
+
+  .article-end > span {
+    color: #6a6f79;
+    font-family: "Space Grotesk", sans-serif;
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+  }
+
+  .article-end a {
+    display: flex;
+    gap: 2rem;
+    color: var(--ink);
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+
+  .article-end i {
+    color: var(--blue);
+    font-style: normal;
+  }
+
+  @media (max-width: 720px) {
+    .article-toolbar {
+      flex: none;
+      padding-inline: 1rem;
+    }
+
+    .memo-prose {
+      flex: 1;
+      width: 100%;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 3.5rem 1.35rem 4.5rem;
+      scrollbar-width: none;
+    }
+
+    .memo-prose::-webkit-scrollbar {
+      display: none;
+    }
+
+    .memo-prose h1 {
+      margin-bottom: 3.5rem;
+      font-size: clamp(2.35rem, 12.5vw, 4rem);
+    }
+
+    .memo-prose h2 {
+      margin-top: 3.8rem;
+    }
+
+    .memo-prose p,
+    .memo-prose li {
+      font-size: 1rem;
+      line-height: 1.9;
+    }
+
+    .memo-prose pre {
+      margin-inline: -0.35rem;
+      font-size: 0.78rem;
+      box-shadow: 5px 5px 0 var(--blue);
+    }
+
+    .article-end {
+      flex: none;
+      margin-inline: 1.35rem;
+      padding-block: 1.35rem;
+    }
+  }
+</style>

@@ -1,10 +1,1338 @@
 ---
-import { Content as IndexContent } from '../content/index.md'
 import BaseLayout from '../layouts/BaseLayout.astro'
+
+const activities = [
+  {
+    mark: '01',
+    title: 'OpenStreetMap / Mapillary',
+    description: 'まちを歩き、地域の情報を地図にひらく。',
+  },
+  {
+    mark: '02',
+    title: 'オープンデータ・地域情報マップ',
+    description: 'データを見つけ、使いやすい形で共有する。',
+  },
+  {
+    mark: '03',
+    title: 'Web / 生成AI / オープンソース',
+    description: '小さくつくって、試して、育てていく。',
+  },
+  {
+    mark: '04',
+    title: 'CoderDojo / プログラミング / 電子工作',
+    description: '手を動かす楽しさを、世代をこえて。',
+  },
+]
 ---
 
-<BaseLayout>
-  <article class="content">
-    <IndexContent />
-  </article>
+<BaseLayout
+  title="太田一穂 - Civic Tech"
+  description="地図、オープンデータ、Web、生成AIを通じて、まちのことをみんなでちょっとおもしろくする太田一穂の活動紹介。"
+  pageClass="home"
+  themeColor="#f4f3ef"
+>
+  <div class="desktop-home">
+    <section class="hero-card" aria-labelledby="desktop-name">
+      <div class="hero-copy">
+        <div class="micro-row">
+          <span>CIVIC TECH</span>
+          <span>PROFILE / 2026</span>
+        </div>
+
+        <div class="identity">
+          <h1 id="desktop-name">太田 一穂</h1>
+          <p class="roman-name">Kazuho OHTA</p>
+        </div>
+
+        <p class="hero-statement">
+          地図をつくったり、<br />
+          データをひらいたり、<br />
+          ゆんたくしたり。
+        </p>
+        <p class="hero-tagline">
+          まちのことを、<br />みんなでちょっとおもしろく。
+        </p>
+
+        <div class="hero-actions">
+          <a class="primary-action" href="/redirect/">
+            活動・Podcast・SNS
+            <span aria-hidden="true">↗</span>
+          </a>
+          <a class="text-action" href="#about">活動について ↓</a>
+        </div>
+      </div>
+
+      <aside class="hero-detail" aria-label="肩書きと活動領域">
+        <div class="monogram" aria-hidden="true">
+          <span>K</span><span>O</span>
+        </div>
+        <p class="detail-lead">Open the data.<br />Map the city.<br />Meet the people.</p>
+        <dl>
+          <div>
+            <dt>FIELD</dt>
+            <dd>Open Data / OpenStreetMap / CoderDojo</dd>
+          </div>
+          <div>
+            <dt>ROLE</dt>
+            <dd>シビックテックさいたま 共同代表<br />Web Engineer</dd>
+          </div>
+          <div>
+            <dt>VOICE</dt>
+            <dd>Podcast「シビックテック井戸端キャスト」</dd>
+          </div>
+        </dl>
+      </aside>
+    </section>
+
+    <section id="about" class="about-section reveal">
+      <div class="section-index">01 / ABOUT</div>
+      <div class="about-heading">
+        <p class="accent-label">OKINAWA × CIVIC TECH</p>
+        <h2>沖縄でも、<br />シビックテック。</h2>
+      </div>
+      <div class="about-copy">
+        <p>
+          シビックテックは、市民・行政・エンジニアなど、いろんな人が地域でつながって、テクノロジーを使いながら、まちのことを考えたり、試したりする活動です。
+        </p>
+        <p>
+          全国に仲間がいます。沖縄でも、ゆるくつながって、何か一緒にできたらと思っています。
+        </p>
+        <div class="organization-links">
+          <a href="https://www.civictechsaitama.com/">シビックテックさいたま ↗</a>
+          <a href="https://code4cat.org/">Code for CAT ↗</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="activity-section reveal" aria-labelledby="activity-title">
+      <div class="section-index">02 / ACTIVITY</div>
+      <div class="activity-heading">
+        <p class="accent-label">WHAT I DO</p>
+        <h2 id="activity-title">こんなことを<br />しています</h2>
+      </div>
+      <div class="activity-list">
+        {
+          activities.map((activity) => (
+            <article>
+              <span>{activity.mark}</span>
+              <div>
+                <h3>{activity.title}</h3>
+                <p>{activity.description}</p>
+              </div>
+            </article>
+          ))
+        }
+      </div>
+    </section>
+
+    <section class="koza-section reveal">
+      <div class="koza-title">
+        <p class="accent-label">KOZA GINTENGAI</p>
+        <h2>コザ銀天街での活動</h2>
+      </div>
+      <div class="koza-name">
+        <strong>サイエンスカフェ広場<br />りっかRIKA</strong>
+      </div>
+      <p>
+        科学を話したり、試したり、ゆんたくしたり。研究者や専門家とも出会える、コザ銀天街の小さな科学と交流の場です。
+      </p>
+    </section>
+
+    <footer class="home-footer">
+      <span>太田 一穂 / Kazuho OHTA</span>
+      <a href="/memo/">Memo →</a>
+      <span>© 2026</span>
+    </footer>
+  </div>
+
+  <section class="mobile-card-shell" aria-label="太田一穂のデジタル名刺">
+    <div class="card-scene">
+      <article
+        id="business-card"
+        class="business-card"
+        role="group"
+        tabindex="0"
+        aria-label="3ページ構成のデジタル名刺。タップまたは左右スワイプで切り替え"
+      >
+        <div class="card-inner" aria-live="polite">
+          <section class="card-face card-front is-active" data-card-page="0" aria-hidden="false">
+            <div class="card-face-header">
+              <span class="card-label">DIGITAL CARD / CIVIC TECH</span>
+              <span>01 / 03</span>
+            </div>
+
+            <div class="mobile-identity">
+              <h1>太田 一穂</h1>
+              <p>Kazuho OHTA</p>
+            </div>
+
+            <div class="mobile-statement">
+              <p>地図をつくったり、<br />データをひらいたり、<br />ゆんたくしたり。</p>
+              <span>まちのことを、みんなで<br />ちょっとおもしろく。</span>
+            </div>
+
+            <div class="mobile-role">
+              <span>Open Data / OpenStreetMap / CoderDojo</span>
+              <strong>シビックテックさいたま 共同代表</strong>
+              <strong>Web Engineer</strong>
+              <span>Podcast「シビックテック井戸端キャスト」</span>
+            </div>
+
+            <a class="card-inline-link" href="/redirect/">活動・Podcast・SNS <span>↗</span></a>
+          </section>
+
+          <section class="card-face card-activity" data-card-page="1" aria-hidden="true">
+            <div class="card-face-header back-header">
+              <span>ACTIVITY / FIELDWORK</span>
+              <span>02 / 03</span>
+            </div>
+
+            <div class="activity-overview">
+              <p class="activity-kicker">MAP / DATA / PLACE</p>
+              <h2>活動</h2>
+              <p>
+                地域を歩き、情報を集め、データをひらき、地図やWebで形にする。そこに人が集まり、学び合える場をつくっています。
+              </p>
+            </div>
+
+            <div class="activity-groups" aria-label="こんなことをしています">
+              <article class="activity-group">
+                <header><span>01</span><h3>地図とオープンデータ</h3></header>
+                <p>まちを歩くマッピングパーティーから、地域情報・防災・公共データの可視化まで。</p>
+                <div class="activity-links">
+                  <a href="https://www.openstreetmap.org/" target="_blank" rel="noreferrer">OpenStreetMap ↗</a>
+                  <a href="https://www.code4saitama.org/" target="_blank" rel="noreferrer">Code for SAITAMA ↗</a>
+                </div>
+              </article>
+
+              <article class="activity-group">
+                <header><span>02</span><h3>シビックテックと場づくり</h3></header>
+                <p>勉強会、相談室、アイデアソンやハッカソンを通じて、地域で試せるつながりを育てる。</p>
+                <div class="activity-links">
+                  <a href="https://www.civictechsaitama.com/" target="_blank" rel="noreferrer">シビックテックさいたま ↗</a>
+                  <a href="https://code4cat.org/" target="_blank" rel="noreferrer">Code for CAT ↗</a>
+                </div>
+              </article>
+
+              <article class="activity-group">
+                <header><span>03</span><h3>教育とものづくり</h3></header>
+                <p>プログラミング、電子工作、Raspberry Pi。地域課題とデータを学びの入口に。</p>
+                <div class="activity-links">
+                  <a href="https://geo.ris.ac.jp/2021/11/post-0-666/" target="_blank" rel="noreferrer">立正大学での授業 ↗</a>
+                  <a href="https://book.mynavi.jp/ec/products/detail/id%3D75796" target="_blank" rel="noreferrer">Raspberry Pi共著 ↗</a>
+                </div>
+              </article>
+
+              <article class="activity-group">
+                <header><span>04</span><h3>声と科学のコミュニティ</h3></header>
+                <p>Podcastと科学コミュニケーションから、埼玉と沖縄をゆるくつなぐ。</p>
+                <div class="activity-links">
+                  <a href="https://idobatacast.com/" target="_blank" rel="noreferrer">シビックテック井戸端キャスト ↗</a>
+                  <a href="https://sciencecafekoza.com/%E3%82%8A%E3%81%A3%E3%81%8Brika-lab/" target="_blank" rel="noreferrer">りっかRIKA LAB ↗</a>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class="card-face card-memo" data-card-page="2" aria-hidden="true">
+            <div class="card-face-header memo-header">
+              <span>NOTES / MEMO</span>
+              <span>03 / 03</span>
+            </div>
+
+            <div class="memo-intro">
+              <p class="memo-kicker">THINK / MAKE / SHARE</p>
+              <h2>Memo</h2>
+              <p>地図やデータ、Webのこと。考えたことや試したことを、短い記録にしています。</p>
+            </div>
+
+            <nav class="card-memo-list" aria-label="メモの記事">
+              <a href="/memo/around-osm/">
+                <span>01</span>
+                <strong>地図をかくことと<br />地図にかくこと</strong>
+                <i aria-hidden="true">↗</i>
+              </a>
+              <a href="/memo/atodeyomu/">
+                <span>02</span>
+                <strong>積ん読PDF</strong>
+                <i aria-hidden="true">↗</i>
+              </a>
+              <a href="/memo/discord/">
+                <span>03</span>
+                <strong>Discord</strong>
+                <i aria-hidden="true">↗</i>
+              </a>
+              <a href="/memo/markdown/">
+                <span>04</span>
+                <strong>markdownとは</strong>
+                <i aria-hidden="true">↗</i>
+              </a>
+            </nav>
+
+            <a class="memo-all-link" href="/memo/">すべてのメモを見る <span>↗</span></a>
+          </section>
+        </div>
+
+        <div class="card-navigation" aria-hidden="true">
+          <span class="is-current"></span><span></span><span></span>
+          <b>SWIPE / TAP TO TURN</b>
+        </div>
+      </article>
+    </div>
+  </section>
 </BaseLayout>
+
+<script>
+  const card = document.querySelector<HTMLElement>('#business-card')
+  const pages = Array.from(document.querySelectorAll<HTMLElement>('[data-card-page]'))
+  const indicators = Array.from(document.querySelectorAll<HTMLElement>('.card-navigation > span'))
+  const pageNames = ['profile', 'activity', 'memo'] as const
+  const requestedPage = pageNames.indexOf(
+    new URLSearchParams(window.location.search).get('card') as (typeof pageNames)[number],
+  )
+  let currentPage = requestedPage >= 0 ? requestedPage : 0
+  let isTurning = false
+  let pointerStartX = 0
+  let pointerStartY = 0
+
+  const setLinkAccess = (page: HTMLElement, active: boolean) => {
+    page.querySelectorAll<HTMLAnchorElement>('a').forEach((link) => {
+      link.tabIndex = active ? 0 : -1
+    })
+  }
+
+  const syncCardUrl = () => {
+    const url = new URL(window.location.href)
+    if (currentPage === 0) url.searchParams.delete('card')
+    else url.searchParams.set('card', pageNames[currentPage])
+    window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`)
+  }
+
+  const turnCard = (direction: 1 | -1) => {
+    if (!card || isTurning || pages.length === 0) return
+
+    isTurning = true
+    const previousPage = currentPage
+    currentPage = (currentPage + direction + pages.length) % pages.length
+    const outgoing = pages[previousPage]
+    const incoming = pages[currentPage]
+
+    outgoing.classList.remove('is-active')
+    outgoing.classList.add(direction === 1 ? 'is-exiting-next' : 'is-exiting-previous')
+    outgoing.setAttribute('aria-hidden', 'true')
+    setLinkAccess(outgoing, false)
+
+    incoming.classList.add('is-preparing')
+    if (direction === -1) incoming.classList.add('from-previous')
+    incoming.setAttribute('aria-hidden', 'false')
+    setLinkAccess(incoming, true)
+
+    indicators.forEach((indicator, index) => {
+      indicator.classList.toggle('is-current', index === currentPage)
+    })
+    syncCardUrl()
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        incoming.classList.remove('is-preparing', 'from-previous')
+        incoming.classList.add('is-active')
+      })
+    })
+
+    window.setTimeout(() => {
+      outgoing.classList.remove('is-exiting-next', 'is-exiting-previous')
+      isTurning = false
+    }, 680)
+  }
+
+  pages.forEach((page, index) => {
+    const isCurrent = index === currentPage
+    page.classList.toggle('is-active', isCurrent)
+    page.setAttribute('aria-hidden', String(!isCurrent))
+    setLinkAccess(page, isCurrent)
+  })
+  indicators.forEach((indicator, index) => {
+    indicator.classList.toggle('is-current', index === currentPage)
+  })
+
+  card?.addEventListener('pointerdown', (event) => {
+    pointerStartX = event.clientX
+    pointerStartY = event.clientY
+  })
+
+  card?.addEventListener('pointermove', (event) => {
+    if (event.pointerType !== 'mouse') return
+    const bounds = card.getBoundingClientRect()
+    const x = (event.clientX - bounds.left) / bounds.width - 0.5
+    const y = (event.clientY - bounds.top) / bounds.height - 0.5
+    card.style.setProperty('--tilt-x', `${y * -4}deg`)
+    card.style.setProperty('--tilt-y', `${x * 5}deg`)
+    card.style.setProperty('--light-x', `${(x + 0.5) * 100}%`)
+    card.style.setProperty('--light-y', `${(y + 0.5) * 100}%`)
+  })
+
+  card?.addEventListener('pointerleave', () => {
+    card.style.setProperty('--tilt-x', '0deg')
+    card.style.setProperty('--tilt-y', '0deg')
+  })
+
+  card?.addEventListener('pointerup', (event) => {
+    if ((event.target as HTMLElement).closest('a')) return
+    const deltaX = event.clientX - pointerStartX
+    const deltaY = event.clientY - pointerStartY
+    const isSwipe = Math.abs(deltaX) > 36 && Math.abs(deltaX) > Math.abs(deltaY)
+    const isTap = Math.abs(deltaX) < 8 && Math.abs(deltaY) < 8
+
+    if (isSwipe) turnCard(deltaX < 0 ? 1 : -1)
+    else if (isTap) turnCard(1)
+  })
+
+  card?.addEventListener('keydown', (event) => {
+    if ((event.target as HTMLElement).closest('a')) return
+    if (event.key === 'Enter' || event.key === ' ' || event.key === 'ArrowRight') {
+      event.preventDefault()
+      turnCard(1)
+    } else if (event.key === 'ArrowLeft') {
+      event.preventDefault()
+      turnCard(-1)
+    }
+  })
+
+  if ('IntersectionObserver' in window) {
+    document.documentElement.classList.add('reveal-ready')
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) entry.target.classList.add('is-visible')
+        }
+      },
+      { threshold: 0.16 },
+    )
+
+    document.querySelectorAll('.reveal').forEach((element) => observer.observe(element))
+  }
+</script>
+
+<style is:global>
+  body.home {
+    --blue: #365cff;
+    --ink: #111318;
+    --paper: #f4f3ef;
+    --line: rgba(17, 19, 24, 0.2);
+    background:
+      radial-gradient(circle at 78% 5%, rgba(54, 92, 255, 0.1), transparent 26rem),
+      var(--paper);
+    color: var(--ink);
+  }
+
+  .micro-row,
+  .card-face-header,
+  .roman-name,
+  .accent-label,
+  .section-index,
+  .card-navigation,
+  .memo-kicker {
+    font-family: "Space Grotesk", sans-serif;
+  }
+
+  body.home .site-header {
+    background: rgba(244, 243, 239, 0.88);
+    border-color: var(--line);
+    backdrop-filter: blur(16px);
+  }
+
+  body.home .site-header nav {
+    width: min(100% - 3rem, 1180px);
+  }
+
+  body.home .site-header a {
+    color: var(--ink);
+    font-size: 0.82rem;
+    letter-spacing: 0.04em;
+  }
+
+  body.home main {
+    width: min(100% - 3rem, 1180px);
+    margin: 2.5rem auto 0;
+  }
+
+  .mobile-card-shell {
+    display: none;
+  }
+
+  .desktop-home {
+    display: grid;
+    gap: 7rem;
+  }
+
+  .hero-card {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(310px, 0.75fr);
+    min-height: 650px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    background: #fff;
+    box-shadow: 0 30px 70px rgba(31, 38, 58, 0.12);
+  }
+
+  .hero-card::before,
+  .hero-card::after {
+    position: absolute;
+    z-index: 2;
+    width: 28px;
+    height: 28px;
+    content: '';
+  }
+
+  .hero-card::before {
+    top: 18px;
+    left: 18px;
+    border-top: 1px solid var(--ink);
+    border-left: 1px solid var(--ink);
+  }
+
+  .hero-card::after {
+    right: 18px;
+    bottom: 18px;
+    border-right: 1px solid var(--ink);
+    border-bottom: 1px solid var(--ink);
+  }
+
+  .hero-copy {
+    display: flex;
+    flex-direction: column;
+    padding: clamp(3rem, 6vw, 5.5rem);
+  }
+
+  .micro-row,
+  .card-face-header {
+    display: flex;
+    justify-content: space-between;
+    color: #4d5260;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+  }
+
+  .micro-row span:first-child,
+  .accent-label,
+  .card-label {
+    color: var(--blue);
+  }
+
+  .identity {
+    margin-top: 4.5rem;
+  }
+
+  .identity h1 {
+    margin: 0;
+    font-size: clamp(3.8rem, 7vw, 6.7rem);
+    font-weight: 750;
+    letter-spacing: -0.08em;
+    line-height: 0.98;
+  }
+
+  .roman-name {
+    margin: 0.8rem 0 0;
+    color: #696d76;
+    font-size: 1rem;
+    letter-spacing: 0.04em;
+  }
+
+  .hero-statement {
+    margin: 4.2rem 0 0;
+    font-size: clamp(1.7rem, 3.1vw, 2.75rem);
+    font-weight: 750;
+    letter-spacing: -0.04em;
+    line-height: 1.25;
+  }
+
+  .hero-tagline {
+    margin: 1rem 0 0;
+    color: #565b66;
+    font-size: 1.05rem;
+    line-height: 1.55;
+  }
+
+  .hero-actions {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-top: auto;
+    padding-top: 3rem;
+  }
+
+  .primary-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+    min-width: 235px;
+    padding: 1rem 1.1rem;
+    background: var(--blue);
+    color: #fff;
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: transform 180ms ease, box-shadow 180ms ease;
+  }
+
+  .primary-action:hover {
+    color: #fff;
+    transform: translateY(-3px);
+    box-shadow: 0 12px 24px rgba(54, 92, 255, 0.25);
+  }
+
+  .text-action {
+    color: var(--ink);
+    font-size: 0.78rem;
+    font-weight: 700;
+  }
+
+  .hero-detail {
+    display: flex;
+    flex-direction: column;
+    padding: clamp(2.5rem, 5vw, 4rem);
+    border-left: 1px solid var(--line);
+    background:
+      linear-gradient(rgba(54, 92, 255, 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(54, 92, 255, 0.08) 1px, transparent 1px),
+      #f6f7fb;
+    background-size: 28px 28px;
+  }
+
+  .monogram {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+    max-width: 280px;
+    aspect-ratio: 1;
+    margin-inline: auto;
+    border: 1px solid var(--ink);
+    background: #fff;
+    box-shadow: 14px 14px 0 var(--blue);
+  }
+
+  .monogram span {
+    display: grid;
+    place-items: center;
+    font-size: clamp(4rem, 7vw, 6.5rem);
+    font-weight: 800;
+    letter-spacing: -0.12em;
+  }
+
+  .monogram span + span {
+    border-left: 1px solid var(--ink);
+    color: var(--blue);
+  }
+
+  .detail-lead {
+    margin: 3.5rem 0 2rem;
+    font-size: 1.35rem;
+    font-weight: 700;
+    line-height: 1.35;
+  }
+
+  .hero-detail dl {
+    margin: auto 0 0;
+  }
+
+  .hero-detail dl > div {
+    padding: 1rem 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .hero-detail dt,
+  .section-index {
+    color: var(--blue);
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.15em;
+  }
+
+  .hero-detail dd {
+    margin: 0.35rem 0 0;
+    font-size: 0.78rem;
+    line-height: 1.55;
+  }
+
+  .about-section,
+  .activity-section {
+    display: grid;
+    grid-template-columns: 130px minmax(260px, 0.8fr) minmax(360px, 1.1fr);
+    gap: clamp(2rem, 6vw, 5rem);
+    padding-top: 2rem;
+    border-top: 1px solid var(--ink);
+  }
+
+  .accent-label {
+    margin: 0 0 1rem;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.15em;
+  }
+
+  .about-heading h2,
+  .activity-heading h2,
+  .koza-title h2 {
+    margin: 0;
+    font-size: clamp(2.5rem, 5vw, 4.7rem);
+    letter-spacing: -0.06em;
+    line-height: 1.08;
+  }
+
+  .about-copy {
+    align-self: end;
+  }
+
+  .about-copy > p {
+    max-width: 38rem;
+    margin: 0 0 1.2rem;
+    font-size: clamp(1rem, 1.8vw, 1.24rem);
+  }
+
+  .organization-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem 1.5rem;
+    margin-top: 2rem;
+  }
+
+  .organization-links a {
+    color: var(--ink);
+    font-size: 0.78rem;
+    font-weight: 750;
+  }
+
+  .activity-section {
+    grid-template-columns: 130px minmax(260px, 0.8fr) minmax(400px, 1.1fr);
+  }
+
+  .activity-list {
+    display: grid;
+  }
+
+  .activity-list article {
+    display: grid;
+    grid-template-columns: 38px 1fr;
+    gap: 1.25rem;
+    padding: 1.35rem 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .activity-list article:last-child {
+    border-bottom: 1px solid var(--line);
+  }
+
+  .activity-list article > span {
+    color: var(--blue);
+    font-family: ui-monospace, monospace;
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+
+  .activity-list h3 {
+    margin: 0;
+    font-size: 1rem;
+  }
+
+  .activity-list p {
+    margin: 0.35rem 0 0;
+    color: #646974;
+    font-size: 0.84rem;
+  }
+
+  .koza-section {
+    display: grid;
+    grid-template-columns: 1.1fr 0.75fr 1fr;
+    gap: clamp(2rem, 5vw, 5rem);
+    align-items: end;
+    padding: clamp(2.5rem, 6vw, 5rem);
+    background: var(--blue);
+    color: #fff;
+  }
+
+  .koza-title .accent-label {
+    color: rgba(255, 255, 255, 0.65);
+  }
+
+  .koza-title h2 {
+    font-size: clamp(2.2rem, 4vw, 3.8rem);
+  }
+
+  .koza-name strong {
+    font-size: clamp(1.4rem, 2.5vw, 2.2rem);
+    line-height: 1.35;
+  }
+
+  .koza-section > p {
+    margin: 0;
+    font-size: 0.94rem;
+  }
+
+  .home-footer {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 1rem;
+    padding: 2rem 0 2.5rem;
+    border-top: 1px solid var(--ink);
+    font-size: 0.72rem;
+  }
+
+  .home-footer a {
+    color: var(--ink);
+    font-weight: 700;
+  }
+
+  .home-footer span:last-child {
+    text-align: right;
+  }
+
+  .reveal {
+    transition: opacity 700ms ease, transform 700ms ease;
+  }
+
+  .reveal-ready .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+
+  .reveal-ready .reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  @media (max-width: 900px) and (min-width: 721px) {
+    .hero-card {
+      grid-template-columns: 1fr 300px;
+    }
+
+    .about-section,
+    .activity-section {
+      grid-template-columns: 90px 1fr;
+    }
+
+    .about-copy,
+    .activity-list {
+      grid-column: 2;
+    }
+
+    .koza-section {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .koza-section > p {
+      grid-column: 2;
+    }
+  }
+
+  @media (max-width: 720px) {
+    body.home {
+      height: 100dvh;
+      overflow: hidden;
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.055) 1px, transparent 1px),
+        #191b22;
+      background-size: 24px 24px;
+    }
+
+    body.home .site-header {
+      display: none;
+    }
+
+    body.home main {
+      width: 100%;
+      height: 100dvh;
+      margin: 0;
+    }
+
+    .desktop-home {
+      display: none;
+    }
+
+    .mobile-card-shell {
+      display: grid;
+      place-items: center;
+      width: 100%;
+      height: 100dvh;
+      padding: max(0.5rem, env(safe-area-inset-top)) 0.5rem max(0.5rem, env(safe-area-inset-bottom));
+    }
+
+    .card-scene {
+      width: min(100%, 480px);
+      height: 100%;
+      perspective: 1800px;
+    }
+
+    .business-card {
+      --tilt-x: 0deg;
+      --tilt-y: 0deg;
+      --light-x: 50%;
+      --light-y: 50%;
+      width: 100%;
+      height: 100%;
+      outline: none;
+      transform: rotateX(var(--tilt-x)) rotateY(var(--tilt-y));
+      transform-style: preserve-3d;
+      transition: transform 180ms ease;
+      cursor: grab;
+      touch-action: pan-y;
+    }
+
+    .business-card:active {
+      cursor: grabbing;
+    }
+
+    .business-card:focus-visible {
+      outline: 3px solid var(--blue);
+      outline-offset: 5px;
+    }
+
+    .card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+    }
+
+    .card-face {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      padding: clamp(1.15rem, 5.5vw, 2rem) clamp(1.15rem, 6vw, 2.2rem) clamp(3.4rem, 14vw, 4.2rem);
+      border: 1px solid rgba(17, 19, 24, 0.18);
+      border-radius: 10px;
+      background:
+        radial-gradient(circle at var(--light-x) var(--light-y), rgba(255, 255, 255, 0.8), transparent 35%),
+        #fff;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.32);
+      backface-visibility: hidden;
+      opacity: 0;
+      pointer-events: none;
+      transform: rotateY(180deg);
+      transform-origin: center;
+      transition:
+        transform 660ms cubic-bezier(0.2, 0.72, 0.15, 1),
+        opacity 280ms ease;
+      z-index: 0;
+    }
+
+    .card-face.is-active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: rotateY(0);
+      z-index: 2;
+    }
+
+    .card-face.is-exiting-next {
+      opacity: 0;
+      transform: rotateY(-180deg);
+      z-index: 3;
+    }
+
+    .card-face.is-exiting-previous {
+      opacity: 0;
+      transform: rotateY(180deg);
+      z-index: 3;
+    }
+
+    .card-face.is-preparing {
+      transition: none;
+    }
+
+    .card-face.is-preparing.from-previous {
+      transform: rotateY(-180deg);
+    }
+
+    .card-face::before,
+    .card-face::after {
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      content: '';
+      pointer-events: none;
+    }
+
+    .card-face::before {
+      top: 10px;
+      left: 10px;
+      border-top: 1px solid var(--ink);
+      border-left: 1px solid var(--ink);
+    }
+
+    .card-face::after {
+      right: 10px;
+      bottom: 10px;
+      border-right: 1px solid var(--ink);
+      border-bottom: 1px solid var(--ink);
+    }
+
+    .mobile-identity {
+      margin-top: clamp(2.2rem, 10vh, 5rem);
+    }
+
+    .mobile-identity h1 {
+      margin: 0;
+      font-size: clamp(2.8rem, 14vw, 4.8rem);
+      font-weight: 900;
+      letter-spacing: -0.09em;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .mobile-identity p {
+      margin: 0.85rem 0 0;
+      color: #626773;
+      font-size: clamp(0.7rem, 3.2vw, 0.9rem);
+      letter-spacing: 0.06em;
+    }
+
+    .mobile-statement {
+      margin-top: auto;
+    }
+
+    .mobile-statement p {
+      margin: 0;
+      font-size: clamp(1.18rem, 5.7vw, 1.72rem);
+      font-weight: 900;
+      letter-spacing: -0.045em;
+      line-height: 1.36;
+    }
+
+    .mobile-statement > span {
+      display: block;
+      margin-top: 0.8rem;
+      color: #5f6470;
+      font-size: clamp(0.72rem, 3.2vw, 0.92rem);
+      font-weight: 500;
+      line-height: 1.5;
+    }
+
+    .mobile-role {
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
+      margin-top: clamp(1.2rem, 5vh, 2.8rem);
+      padding-top: 0.7rem;
+      border-top: 1px solid var(--ink);
+      font-size: clamp(0.56rem, 2.45vw, 0.72rem);
+      line-height: 1.5;
+    }
+
+    .mobile-role strong {
+      font-weight: 700;
+    }
+
+    .card-inline-link,
+    .memo-all-link {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: clamp(0.8rem, 3vh, 1.5rem);
+      padding: 0.68rem 0;
+      border-top: 1px solid var(--blue);
+      border-bottom: 1px solid var(--blue);
+      color: var(--blue);
+      font-size: clamp(0.62rem, 2.8vw, 0.78rem);
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .card-inline-link:hover,
+    .memo-all-link:hover {
+      color: var(--blue);
+    }
+
+    .back-header {
+      padding-bottom: 0.65rem;
+      border-bottom: 2px solid var(--blue);
+    }
+
+    .card-activity {
+      overflow-y: auto;
+      scrollbar-width: none;
+    }
+
+    .card-activity::-webkit-scrollbar {
+      display: none;
+    }
+
+    .activity-overview {
+      margin-top: clamp(1.2rem, 4.5vh, 2.8rem);
+    }
+
+    .activity-kicker {
+      margin: 0 0 0.25rem;
+      color: var(--blue);
+      font-family: "Space Grotesk", sans-serif;
+      font-size: clamp(0.5rem, 2.2vw, 0.64rem);
+      font-weight: 700;
+      letter-spacing: 0.14em;
+    }
+
+    .activity-overview h2 {
+      margin: 0;
+      font-size: clamp(3rem, 15vw, 5rem);
+      font-weight: 900;
+      letter-spacing: -0.06em;
+      line-height: 1;
+    }
+
+    .activity-overview > p:last-child {
+      max-width: 26rem;
+      margin: 0.6rem 0 0;
+      font-size: clamp(0.65rem, 2.85vw, 0.82rem);
+      font-weight: 500;
+      line-height: 1.6;
+    }
+
+    .activity-groups {
+      display: grid;
+      margin-top: clamp(1.1rem, 3.5vh, 2rem);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .activity-group {
+      padding: clamp(0.65rem, 2.4vh, 1.05rem) 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .activity-group header {
+      display: grid;
+      grid-template-columns: 1.65rem 1fr;
+      gap: 0.35rem;
+      align-items: baseline;
+    }
+
+    .activity-group header span {
+      color: var(--blue);
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 0.54rem;
+      font-weight: 700;
+    }
+
+    .activity-group h3 {
+      margin: 0;
+      font-size: clamp(0.82rem, 3.55vw, 1.05rem);
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      line-height: 1.35;
+    }
+
+    .activity-group > p {
+      margin: 0.35rem 0 0 2rem;
+      color: #555b67;
+      font-size: clamp(0.56rem, 2.35vw, 0.68rem);
+      line-height: 1.45;
+    }
+
+    .activity-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem 0.85rem;
+      margin: 0.42rem 0 0 2rem;
+    }
+
+    .activity-links a {
+      color: var(--blue);
+      font-size: clamp(0.54rem, 2.25vw, 0.66rem);
+      font-weight: 700;
+      line-height: 1.45;
+      text-decoration-thickness: 1px;
+      text-underline-offset: 0.2em;
+    }
+
+    .activity-links a:hover {
+      color: #1e3cd8;
+    }
+
+    .card-memo {
+      background:
+        linear-gradient(rgba(54, 92, 255, 0.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(54, 92, 255, 0.07) 1px, transparent 1px),
+        radial-gradient(circle at var(--light-x) var(--light-y), rgba(255, 255, 255, 0.9), transparent 34%),
+        #f7f8fc;
+      background-size: 22px 22px, 22px 22px, auto, auto;
+    }
+
+    .memo-header {
+      padding-bottom: 0.65rem;
+      border-bottom: 2px solid var(--ink);
+    }
+
+    .memo-intro {
+      margin-top: clamp(1.5rem, 6vh, 3.5rem);
+    }
+
+    .memo-kicker {
+      margin: 0 0 0.3rem;
+      color: var(--blue);
+      font-size: clamp(0.52rem, 2.3vw, 0.65rem);
+      font-weight: 700;
+      letter-spacing: 0.14em;
+    }
+
+    .memo-intro h2 {
+      margin: 0;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: clamp(3.7rem, 18vw, 6rem);
+      font-weight: 600;
+      letter-spacing: -0.08em;
+      line-height: 1;
+    }
+
+    .memo-intro > p:last-child {
+      max-width: 24rem;
+      margin: 0.7rem 0 0;
+      font-size: clamp(0.65rem, 2.9vw, 0.82rem);
+      line-height: 1.6;
+    }
+
+    .card-memo-list {
+      display: grid;
+      margin-top: clamp(1.4rem, 5vh, 3rem);
+      border-top: 1px solid var(--ink);
+    }
+
+    .card-memo-list a {
+      display: grid;
+      grid-template-columns: 1.7rem 1fr auto;
+      gap: 0.55rem;
+      align-items: center;
+      min-height: clamp(2.7rem, 8vh, 4.1rem);
+      padding: 0.4rem 0;
+      border-bottom: 1px solid var(--line);
+      color: var(--ink);
+      text-decoration: none;
+    }
+
+    .card-memo-list a > span {
+      color: var(--blue);
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 0.58rem;
+      font-weight: 700;
+    }
+
+    .card-memo-list strong {
+      font-size: clamp(0.72rem, 3.25vw, 0.94rem);
+      line-height: 1.35;
+    }
+
+    .card-memo-list i {
+      color: var(--blue);
+      font-style: normal;
+    }
+
+    .memo-all-link {
+      margin-top: auto;
+    }
+
+    .card-navigation {
+      position: absolute;
+      right: clamp(1.15rem, 6vw, 2.2rem);
+      bottom: clamp(1.2rem, 5vw, 1.7rem);
+      left: clamp(1.15rem, 6vw, 2.2rem);
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      pointer-events: none;
+    }
+
+    .card-navigation > span {
+      width: 0.35rem;
+      height: 0.35rem;
+      border: 1px solid var(--ink);
+      border-radius: 50%;
+      background: transparent;
+      transition: width 240ms ease, background 240ms ease;
+    }
+
+    .card-navigation > span.is-current {
+      width: 1.3rem;
+      border-radius: 1rem;
+      background: var(--ink);
+    }
+
+    .card-navigation b {
+      margin-left: auto;
+      color: #5f6470;
+      font-size: clamp(0.45rem, 2vw, 0.58rem);
+      letter-spacing: 0.08em;
+    }
+  }
+
+  @media (max-width: 720px) and (max-height: 650px) {
+    .card-face {
+      padding-top: 1rem;
+      padding-bottom: 2.8rem;
+    }
+
+    .mobile-identity,
+    .activity-overview,
+    .memo-intro {
+      margin-top: 1.25rem;
+    }
+
+    .mobile-statement p {
+      font-size: clamp(1.05rem, 5.2vw, 1.35rem);
+    }
+
+    .mobile-role,
+    .activity-groups,
+    .card-memo-list {
+      margin-top: 0.85rem;
+    }
+
+    .activity-overview h2 {
+      font-size: clamp(2.55rem, 13vw, 3.6rem);
+    }
+
+    .activity-overview > p:last-child {
+      margin-top: 0.35rem;
+      line-height: 1.42;
+    }
+
+    .activity-group {
+      padding-block: 0.5rem;
+    }
+
+    .activity-group > p {
+      margin-top: 0.22rem;
+      line-height: 1.35;
+    }
+
+    .activity-links {
+      margin-top: 0.25rem;
+    }
+
+    .memo-intro h2 {
+      font-size: clamp(3.2rem, 16vw, 4.5rem);
+    }
+
+    .card-memo-list a {
+      min-height: 2.45rem;
+    }
+
+    .card-navigation {
+      bottom: 1rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    .reveal,
+    .card-inner,
+    .business-card,
+    .primary-action {
+      transition: none;
+    }
+  }
+</style>

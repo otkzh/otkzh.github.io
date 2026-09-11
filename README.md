@@ -24,6 +24,6 @@ $ npm run build
 ## Project structure
 
 - `src/pages/`: Astroのページ
-- `src/content/`: トップページとメモのMarkdown
+- `src/content/`: メモのMarkdown
 - `src/layouts/`: 共通レイアウト
 - `public/`: 地図や変換ツールなどの単体HTMLと静的ファイル

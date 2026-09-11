@@ -31,7 +31,7 @@ const documentTitle =
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=Zen+Kaku+Gothic+New:wght@400;500;700;900&amp;display=swap"
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap"
       rel="stylesheet"
     />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
@@ -53,10 +53,16 @@ const documentTitle =
 <style is:global>
   :root {
     color-scheme: light;
+    font-size: 18px;
     font-family:
-      "Zen Kaku Gothic New", ui-sans-serif, system-ui, -apple-system,
-      BlinkMacSystemFont, "Segoe UI", sans-serif;
-    color: #172033;
+      'Zen Kaku Gothic New',
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      'Segoe UI',
+      sans-serif;
+    color: #222;
     background: #f6f8fb;
     font-synthesis: none;
   }
@@ -68,7 +74,7 @@ const documentTitle =
   body {
     min-width: 320px;
     margin: 0;
-    line-height: 1.7;
+    line-height: 1.8;
   }
 
   a {
@@ -99,6 +105,10 @@ const documentTitle =
     color: inherit;
     font-weight: 700;
     text-decoration: none;
+  }
+
+  .site-header nav a {
+    font-size: 1rem;
   }
 
   main {

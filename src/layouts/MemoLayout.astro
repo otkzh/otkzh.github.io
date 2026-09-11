@@ -103,7 +103,7 @@ const {
     min-height: 5.4rem;
     padding: 1rem clamp(1.25rem, 4vw, 3rem);
     border-bottom: 1px solid var(--ink);
-    font-family: "Space Grotesk", sans-serif;
+    font-family: 'Space Grotesk', sans-serif;
   }
 
   .memo-monogram {
@@ -114,11 +114,13 @@ const {
     border: 1px solid var(--ink);
     background: var(--blue);
     color: #fff;
-    font-size: 0.85rem;
+    font-size: 1rem;
     font-weight: 700;
     letter-spacing: -0.06em;
     text-decoration: none;
-    transition: transform 180ms ease, box-shadow 180ms ease;
+    transition:
+      transform 180ms ease,
+      box-shadow 180ms ease;
   }
 
   .memo-monogram:hover {
@@ -135,14 +137,14 @@ const {
 
   .memo-masthead span,
   .memo-index-link {
-    color: #696d76;
-    font-size: 0.58rem;
+    color: #333;
+    font-size: 0.875rem;
     font-weight: 600;
     letter-spacing: 0.14em;
   }
 
   .memo-masthead strong {
-    font-size: 0.78rem;
+    font-size: 0.9375rem;
     letter-spacing: 0.08em;
   }
 
@@ -158,8 +160,8 @@ const {
     gap: 1rem;
     padding: 1.4rem clamp(1.25rem, 4vw, 3rem);
     border-top: 1px solid var(--ink);
-    font-family: "Space Grotesk", sans-serif;
-    font-size: 0.62rem;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.875rem;
     letter-spacing: 0.04em;
   }
 
@@ -188,7 +190,8 @@ const {
       height: 100dvh;
       margin: 0;
       margin-inline: auto;
-      padding: max(0.5rem, env(safe-area-inset-top)) 0.5rem max(0.5rem, env(safe-area-inset-bottom));
+      padding: max(0.5rem, env(safe-area-inset-top)) 0.5rem
+        max(0.5rem, env(safe-area-inset-bottom));
     }
 
     .memo-page-shell {

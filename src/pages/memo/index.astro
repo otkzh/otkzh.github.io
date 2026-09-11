@@ -29,13 +29,20 @@ const posts = Object.entries(modules)
   })
 ---
 
-<MemoLayout title="Memo" description="地図、データ、Webについての太田一穂のメモ一覧です。" kind="index">
+<MemoLayout
+  title="Memo"
+  description="地図、データ、Webについての太田一穂のメモ一覧です。"
+  kind="index"
+>
   <header class="memo-index-hero">
     <div>
       <p>THINK / MAKE / SHARE</p>
       <h1>Memo</h1>
     </div>
-    <p>地図やデータ、Webのこと。<br />考えたことや試したことを、短い記録にしています。</p>
+    <p>
+      地図やデータ、Webのこと。<br
+      />考えたことや試したことを、短い記録にしています。
+    </p>
   </header>
 
   <section class="memo-archive" aria-labelledby="archive-title">
@@ -48,13 +55,17 @@ const posts = Object.entries(modules)
         posts.map((post, index) => (
           <li>
             <a href={`/memo/${post.slug}/`}>
-              <span class="memo-number">{String(index + 1).padStart(2, '0')}</span>
+              <span class="memo-number">
+                {String(index + 1).padStart(2, '0')}
+              </span>
               <div>
                 <small>{post.date ? 'DATED NOTE' : 'ARCHIVE NOTE'}</small>
                 <h3>{post.title}</h3>
                 {post.date && <time datetime={post.date}>{post.date}</time>}
               </div>
-              <span class="memo-arrow" aria-hidden="true">↗</span>
+              <span class="memo-arrow" aria-hidden="true">
+                ↗
+              </span>
             </a>
           </li>
         ))
@@ -72,22 +83,26 @@ const posts = Object.entries(modules)
     min-height: 430px;
     padding: clamp(3rem, 7vw, 6rem);
     background:
-      radial-gradient(circle at 72% 28%, rgba(54, 92, 255, 0.13), transparent 17rem),
+      radial-gradient(
+        circle at 72% 28%,
+        rgba(54, 92, 255, 0.13),
+        transparent 17rem
+      ),
       #fff;
   }
 
   .memo-index-hero > div > p {
     margin: 0 0 0.5rem;
     color: var(--blue);
-    font-family: "Space Grotesk", sans-serif;
-    font-size: 0.68rem;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.875rem;
     font-weight: 700;
     letter-spacing: 0.16em;
   }
 
   .memo-index-hero h1 {
     margin: 0;
-    font-family: "Space Grotesk", sans-serif;
+    font-family: 'Space Grotesk', sans-serif;
     font-size: clamp(5rem, 13vw, 10rem);
     font-weight: 600;
     letter-spacing: -0.09em;
@@ -98,7 +113,7 @@ const posts = Object.entries(modules)
     margin: 0;
     padding-top: 1.2rem;
     border-top: 2px solid var(--blue);
-    font-size: clamp(0.92rem, 1.7vw, 1.15rem);
+    font-size: clamp(1rem, 1.7vw, 1.15rem);
     font-weight: 500;
     line-height: 1.75;
   }
@@ -119,8 +134,8 @@ const posts = Object.entries(modules)
 
   .archive-heading span {
     color: var(--blue);
-    font-family: "Space Grotesk", sans-serif;
-    font-size: 0.62rem;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.875rem;
     font-weight: 700;
     letter-spacing: 0.14em;
   }
@@ -156,7 +171,9 @@ const posts = Object.entries(modules)
     padding: 1.6rem;
     color: var(--ink);
     text-decoration: none;
-    transition: background 180ms ease, color 180ms ease;
+    transition:
+      background 180ms ease,
+      color 180ms ease;
   }
 
   .memo-list a:hover {
@@ -167,8 +184,8 @@ const posts = Object.entries(modules)
   .memo-number,
   .memo-list small,
   .memo-list time {
-    font-family: "Space Grotesk", sans-serif;
-    font-size: 0.58rem;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.875rem;
     font-weight: 700;
     letter-spacing: 0.08em;
   }
@@ -193,7 +210,7 @@ const posts = Object.entries(modules)
   .memo-list time {
     display: block;
     margin-top: 0.65rem;
-    color: #676c77;
+    color: #333;
   }
 
   .memo-arrow {
@@ -257,7 +274,7 @@ const posts = Object.entries(modules)
 
     .memo-index-hero > p {
       padding-top: 0.7rem;
-      font-size: 0.75rem;
+      font-size: 0.9375rem;
       line-height: 1.55;
     }
 

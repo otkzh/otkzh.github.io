@@ -2,7 +2,7 @@
 
 [https://otkzh.github.io/](https://otkzh.github.io/)
 
-Astroで生成する個人サイト兼ウェブツール置き場です。
+Astro で生成する個人サイト兼ウェブツール置き場です。
 
 ## Build Setup
 
@@ -23,7 +23,8 @@ $ npm run build
 
 ## Project structure
 
-- `src/pages/`: Astroのページ
-- `src/content/`: メモのMarkdown
+- `src/pages/`: Astro のページ
+- `src/content/`: メモの Markdown
 - `src/layouts/`: 共通レイアウト
-- `public/`: 地図や変換ツールなどの単体HTMLと静的ファイル
+- `public/`: 地図や変換ツールなどの単体 HTML と静的ファイル
+- `docs/typography.md`: 文字サイズと可読性の基準・調整履歴

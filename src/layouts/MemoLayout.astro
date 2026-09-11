@@ -170,7 +170,7 @@ const {
     text-align: right;
   }
 
-  @media (max-width: 720px), (orientation: landscape) and (max-height: 560px) {
+  @media (min-width: 0) {
     body.memo-page {
       height: 100dvh;
       overflow: hidden;
@@ -186,8 +186,10 @@ const {
       height: 100dvh;
       margin: 0;
       margin-inline: auto;
-      padding: max(0.5rem, env(safe-area-inset-top)) 0.5rem
-        max(0.5rem, env(safe-area-inset-bottom));
+      padding: max(0.5rem, env(safe-area-inset-top))
+        max(0.5rem, env(safe-area-inset-right))
+        max(0.5rem, env(safe-area-inset-bottom))
+        max(0.5rem, env(safe-area-inset-left));
     }
 
     .memo-page-shell {
@@ -216,13 +218,14 @@ const {
     }
   }
 
-  @media (orientation: landscape) and (max-height: 560px) {
+  @media (orientation: landscape) and (max-height: 560px),
+    (min-width: 721px) {
     body.memo-page {
       font-family: 'Shippori Mincho', serif;
     }
 
     body.memo-page main {
-      width: min(100%, 976px);
+      width: min(100%, 1180px);
       max-width: none;
       padding: max(0.4rem, env(safe-area-inset-top)) 0.5rem
         max(0.4rem, env(safe-area-inset-bottom));
@@ -243,7 +246,26 @@ const {
 
     .memo-footer {
       padding: 0.7rem clamp(1.2rem, 3vw, 2rem);
-      font-size: 0.58rem;
+      font-size: clamp(0.58rem, 1vw, 0.72rem);
+    }
+  }
+
+  @media (min-width: 721px) and (min-height: 561px) {
+    body.memo-page {
+      display: grid;
+      min-height: 100dvh;
+      place-items: center;
+    }
+
+    body.memo-page main {
+      width: min(
+        calc(100vw - clamp(4rem, 10vw, 8rem)),
+        1180px,
+        calc((100dvh - clamp(4rem, 10vw, 8rem)) * 1.685)
+      );
+      height: auto;
+      padding: 0;
+      aspect-ratio: 91 / 54;
     }
   }
 

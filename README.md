@@ -27,4 +27,6 @@ $ npm run build
 - `src/content/`: メモの Markdown
 - `src/layouts/`: 共通レイアウト
 - `public/`: 地図や変換ツールなどの単体 HTML と静的ファイル
+- `docs/development-policy.md`: 情報設計、レスポンシブ、操作、品質の開発方針
+- `docs/technical-tips.md`: viewport、3D演出、端末傾き、検証方法の技術TIPS
 - `docs/typography.md`: 文字サイズと可読性の基準・調整履歴

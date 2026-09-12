@@ -21,7 +21,10 @@ const documentTitle =
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
     <meta name="description" content={description} />
     <meta name="generator" content={Astro.generator} />
     <meta name="theme-color" content={themeColor} />
@@ -65,6 +68,12 @@ const documentTitle =
     color: #222;
     background: #f6f8fb;
     font-synthesis: none;
+  }
+
+  html {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
   }
 
   * {

@@ -2,7 +2,7 @@
 import MemoLayout from '../../layouts/MemoLayout.astro'
 
 interface MarkdownModule {
-  frontmatter: { date?: string; title?: string }
+  frontmatter: { date?: string | Date; title?: string; tags?: string[] }
   rawContent: () => string
 }
 
@@ -14,11 +14,18 @@ const posts = Object.entries(modules)
   .map(([path, post]) => {
     const slug = path.split('/').at(-1)?.replace(/\.md$/, '') ?? ''
     const heading = post.rawContent().match(/^#\s+(.+)$/m)?.[1]
+    const rawDate = post.frontmatter.date
+    const date = rawDate
+      ? rawDate instanceof Date
+        ? rawDate.toISOString().slice(0, 10)
+        : String(rawDate).slice(0, 10)
+      : undefined
 
     return {
       slug,
       title: post.frontmatter.title ?? heading ?? slug,
-      date: post.frontmatter.date,
+      date,
+      tags: post.frontmatter.tags ?? [],
     }
   })
   .sort((a, b) => {
@@ -59,7 +66,13 @@ const posts = Object.entries(modules)
                 {String(index + 1).padStart(2, '0')}
               </span>
               <div>
-                <small>{post.date ? 'DATED NOTE' : 'ARCHIVE NOTE'}</small>
+                <small>
+                  {post.tags.includes('AI記事')
+                    ? 'AI記事 / NOTE'
+                    : post.date
+                      ? 'DATED NOTE'
+                      : 'ARCHIVE NOTE'}
+                </small>
                 <h3>{post.title}</h3>
                 {post.date && <time datetime={post.date}>{post.date}</time>}
               </div>

@@ -154,7 +154,7 @@ const activities = [
         class="business-card"
         role="group"
         tabindex="0"
-        aria-label="3ページ構成のデジタル名刺。タップまたは左右スワイプで切り替え"
+        aria-label="3ページ構成のデジタル名刺。左半分のタップで前、右半分のタップで次へ切り替え"
       >
         <div class="card-inner" aria-live="polite">
           <section
@@ -187,61 +187,6 @@ const activities = [
               <span>Podcast「シビックテック井戸端キャスト」</span>
             </div>
 
-            <div class="front-actions">
-              <nav class="contact-links" aria-label="メールとSNS">
-                <a
-                  href="mailto:otkzh77@gmail.com"
-                  aria-label="otkzh77@gmail.com にメールを送る"
-                  title="otkzh77@gmail.com"
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <rect x="3" y="5" width="18" height="14" rx="2"></rect>
-                    <path d="m4 7 8 6 8-6"></path>
-                  </svg>
-                  <span>Mail</span>
-                </a>
-                <a
-                  href="https://www.facebook.com/kazuho.ohta"
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label="Facebook: kazuho.ohta"
-                  title="Facebook / kazuho.ohta"
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path
-                      d="M14 8h3V4h-3c-3 0-5 2-5 5v3H6v4h3v6h4v-6h3l1-4h-4V9c0-.6.4-1 1-1Z"
-                    ></path>
-                  </svg>
-                  <span>Facebook</span>
-                </a>
-                <a
-                  href="https://www.instagram.com/otkzh/"
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label="Instagram: @otkzh"
-                  title="Instagram / @otkzh"
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <rect x="3" y="3" width="18" height="18" rx="5"></rect>
-                    <circle cx="12" cy="12" r="4"></circle>
-                    <circle cx="17.5" cy="6.5" r="1"></circle>
-                  </svg>
-                  <span>Instagram</span>
-                </a>
-                <a
-                  href="https://x.com/otkzh"
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label="X: @otkzh"
-                  title="X / @otkzh"
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M5 4 19 20M19 4 5 20"></path>
-                  </svg>
-                  <span>X</span>
-                </a>
-              </nav>
-            </div>
           </section>
 
           <section
@@ -391,10 +336,65 @@ const activities = [
           </section>
         </div>
 
-        <div class="card-navigation" aria-hidden="true">
-          <span class="is-current"></span><span></span><span></span>
-          <b>SWIPE / TAP TO TURN</b>
-        </div>
+        <footer class="card-navigation">
+          <div class="card-indicators" aria-hidden="true">
+            <span class="is-current"></span><span></span><span></span>
+          </div>
+          <nav class="contact-links" aria-label="メールとSNS">
+            <a
+              href="mailto:otkzh77@gmail.com"
+              aria-label="otkzh77@gmail.com にメールを送る"
+              title="otkzh77@gmail.com"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="3" y="5" width="18" height="14" rx="2"></rect>
+                <path d="m4 7 8 6 8-6"></path>
+              </svg>
+              <span>Mail</span>
+            </a>
+            <a
+              href="https://www.facebook.com/kazuho.ohta"
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Facebook: kazuho.ohta"
+              title="Facebook / kazuho.ohta"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M14 8h3V4h-3c-3 0-5 2-5 5v3H6v4h3v6h4v-6h3l1-4h-4V9c0-.6.4-1 1-1Z"
+                ></path>
+              </svg>
+              <span>Facebook</span>
+            </a>
+            <a
+              href="https://www.instagram.com/otkzh/"
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Instagram: @otkzh"
+              title="Instagram / @otkzh"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="3" y="3" width="18" height="18" rx="5"></rect>
+                <circle cx="12" cy="12" r="4"></circle>
+                <circle cx="17.5" cy="6.5" r="1"></circle>
+              </svg>
+              <span>Instagram</span>
+            </a>
+            <a
+              href="https://x.com/otkzh"
+              target="_blank"
+              rel="noreferrer"
+              aria-label="X: @otkzh"
+              title="X / @otkzh"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M5 4 19 20M19 4 5 20"></path>
+              </svg>
+              <span>X</span>
+            </a>
+          </nav>
+          <b aria-hidden="true">← TAP / SWIPE →</b>
+        </footer>
       </article>
     </div>
   </section>
@@ -406,7 +406,7 @@ const activities = [
     document.querySelectorAll<HTMLElement>('[data-card-page]'),
   )
   const indicators = Array.from(
-    document.querySelectorAll<HTMLElement>('.card-navigation > span'),
+    document.querySelectorAll<HTMLElement>('.card-indicators > span'),
   )
   const pageNames = ['profile', 'activity', 'memo'] as const
   const requestedPage = pageNames.indexOf(
@@ -418,6 +418,49 @@ const activities = [
   let isTurning = false
   let pointerStartX = 0
   let pointerStartY = 0
+  let deviceTiltRequested = false
+  let orientationBaseline: { beta: number; gamma: number } | null = null
+
+  const clamp = (value: number, min: number, max: number) =>
+    Math.min(max, Math.max(min, value))
+
+  const handleDeviceOrientation = (event: DeviceOrientationEvent) => {
+    if (!card || event.beta === null || event.gamma === null) return
+
+    orientationBaseline ??= { beta: event.beta, gamma: event.gamma }
+    const beta = clamp(event.beta - orientationBaseline.beta, -28, 28)
+    const gamma = clamp(event.gamma - orientationBaseline.gamma, -32, 32)
+
+    card.style.setProperty('--tilt-x', `${beta * -0.12}deg`)
+    card.style.setProperty('--tilt-y', `${gamma * 0.15}deg`)
+    card.style.setProperty('--light-x', `${clamp(50 + gamma * 1.15, 18, 82)}%`)
+    card.style.setProperty('--light-y', `${clamp(50 + beta * 0.9, 20, 80)}%`)
+    card.dataset.lean = gamma > 10 ? 'right' : gamma < -10 ? 'left' : 'center'
+    card.dataset.posture = Math.abs(event.gamma) > 45 ? 'sideways' : 'upright'
+  }
+
+  const enableDeviceTilt = async () => {
+    if (deviceTiltRequested || window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+      return
+    if (!('DeviceOrientationEvent' in window)) return
+
+    deviceTiltRequested = true
+    const orientationEvent = DeviceOrientationEvent as typeof DeviceOrientationEvent & {
+      requestPermission?: () => Promise<'granted' | 'denied'>
+    }
+
+    if (orientationEvent.requestPermission) {
+      try {
+        if ((await orientationEvent.requestPermission()) !== 'granted') return
+      } catch {
+        return
+      }
+    }
+
+    window.addEventListener('deviceorientation', handleDeviceOrientation, {
+      passive: true,
+    })
+  }
 
   const setLinkAccess = (page: HTMLElement, active: boolean) => {
     page.querySelectorAll<HTMLAnchorElement>('a').forEach((link) => {
@@ -440,8 +483,11 @@ const activities = [
     if (!card || isTurning || pages.length === 0) return
 
     isTurning = true
+    card.dataset.turnDirection = direction === 1 ? 'next' : 'previous'
+    card.classList.add('is-turning')
     const previousPage = currentPage
     currentPage = (currentPage + direction + pages.length) % pages.length
+    card.dataset.page = pageNames[currentPage]
     const outgoing = pages[previousPage]
     const incoming = pages[currentPage]
 
@@ -452,8 +498,10 @@ const activities = [
     outgoing.setAttribute('aria-hidden', 'true')
     setLinkAccess(outgoing, false)
 
-    incoming.classList.add('is-preparing')
-    if (direction === -1) incoming.classList.add('from-previous')
+    incoming.classList.add(
+      'is-preparing',
+      direction === 1 ? 'from-next' : 'from-previous',
+    )
     incoming.setAttribute('aria-hidden', 'false')
     setLinkAccess(incoming, true)
 
@@ -464,13 +512,14 @@ const activities = [
 
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        incoming.classList.remove('is-preparing', 'from-previous')
+        incoming.classList.remove('is-preparing', 'from-next', 'from-previous')
         incoming.classList.add('is-active')
       })
     })
 
     window.setTimeout(() => {
       outgoing.classList.remove('is-exiting-next', 'is-exiting-previous')
+      card.classList.remove('is-turning')
       isTurning = false
     }, 680)
   }
@@ -484,10 +533,12 @@ const activities = [
   indicators.forEach((indicator, index) => {
     indicator.classList.toggle('is-current', index === currentPage)
   })
+  if (card) card.dataset.page = pageNames[currentPage]
 
   card?.addEventListener('pointerdown', (event) => {
     pointerStartX = event.clientX
     pointerStartY = event.clientY
+    if (event.pointerType !== 'mouse') void enableDeviceTilt()
   })
 
   card?.addEventListener('pointermove', (event) => {
@@ -499,11 +550,13 @@ const activities = [
     card.style.setProperty('--tilt-y', `${x * 5}deg`)
     card.style.setProperty('--light-x', `${(x + 0.5) * 100}%`)
     card.style.setProperty('--light-y', `${(y + 0.5) * 100}%`)
+    card.dataset.lean = x > 0.18 ? 'right' : x < -0.18 ? 'left' : 'center'
   })
 
   card?.addEventListener('pointerleave', () => {
     card.style.setProperty('--tilt-x', '0deg')
     card.style.setProperty('--tilt-y', '0deg')
+    card.dataset.lean = 'center'
   })
 
   card?.addEventListener('pointerup', (event) => {
@@ -514,7 +567,10 @@ const activities = [
     const isTap = Math.abs(deltaX) < 8 && Math.abs(deltaY) < 8
 
     if (isSwipe) turnCard(deltaX < 0 ? 1 : -1)
-    else if (isTap) turnCard(1)
+    else if (isTap) {
+      const bounds = card.getBoundingClientRect()
+      turnCard(event.clientX < bounds.left + bounds.width / 2 ? -1 : 1)
+    }
   })
 
   card?.addEventListener('keydown', (event) => {
@@ -1102,7 +1158,7 @@ const activities = [
       flex-direction: column;
       overflow: hidden;
       padding: clamp(1.15rem, 5.5vw, 2rem) clamp(1.15rem, 6vw, 2.2rem)
-        clamp(3.4rem, 14vw, 4.2rem);
+        clamp(5rem, 20vw, 5.8rem);
       border: 1px solid rgba(17, 19, 24, 0.18);
       border-radius: 10px;
       background:
@@ -1140,13 +1196,15 @@ const activities = [
 
     .card-face.is-exiting-next {
       opacity: 0;
-      transform: rotateY(-180deg);
+      transform: translateX(-7%) rotateY(-118deg) scale(0.985);
+      transform-origin: left center;
       z-index: 3;
     }
 
     .card-face.is-exiting-previous {
       opacity: 0;
-      transform: rotateY(180deg);
+      transform: translateX(7%) rotateY(118deg) scale(0.985);
+      transform-origin: right center;
       z-index: 3;
     }
 
@@ -1154,8 +1212,33 @@ const activities = [
       transition: none;
     }
 
+    .card-face.is-preparing.from-next {
+      transform: translateX(7%) rotateY(118deg) scale(0.985);
+      transform-origin: right center;
+    }
+
     .card-face.is-preparing.from-previous {
-      transform: rotateY(-180deg);
+      transform: translateX(-7%) rotateY(-118deg) scale(0.985);
+      transform-origin: left center;
+    }
+
+    .business-card[data-lean='left'] .card-face.is-active {
+      border-left: 3px solid var(--blue);
+      box-shadow: -12px 24px 60px rgba(0, 0, 0, 0.34);
+    }
+
+    .business-card[data-lean='right'] .card-face.is-active {
+      border-right: 3px solid var(--blue);
+      box-shadow: 12px 24px 60px rgba(0, 0, 0, 0.34);
+    }
+
+    .business-card[data-posture='sideways'] .card-face {
+      border-radius: 6px;
+    }
+
+    .business-card[data-posture='sideways'] .card-face-header {
+      color: var(--blue);
+      letter-spacing: 0.18em;
     }
 
     .card-face::before,
@@ -1237,12 +1320,6 @@ const activities = [
       font-weight: 700;
     }
 
-    .front-actions {
-      display: flex;
-      justify-content: flex-end;
-      margin-top: clamp(0.8rem, 3vh, 1.5rem);
-    }
-
     .memo-all-link {
       display: flex;
       align-items: center;
@@ -1272,6 +1349,8 @@ const activities = [
       display: flex;
       gap: 0.35rem;
       align-items: stretch;
+      justify-self: center;
+      pointer-events: auto;
     }
 
     .contact-links a {
@@ -1527,17 +1606,38 @@ const activities = [
 
     .card-navigation {
       position: absolute;
-      right: clamp(1.15rem, 6vw, 2.2rem);
-      bottom: clamp(1.2rem, 5vw, 1.7rem);
-      left: clamp(1.15rem, 6vw, 2.2rem);
+      right: 0;
+      bottom: 0;
+      left: 0;
       z-index: 10;
-      display: flex;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
       align-items: center;
-      gap: 0.35rem;
+      min-height: 4.25rem;
+      gap: 0.6rem;
+      padding: 0.45rem clamp(1.15rem, 6vw, 2.2rem);
+      border-top: 1px solid var(--line);
+      border-radius: 0 0 10px 10px;
+      background: #fff;
+      backdrop-filter: blur(10px);
       pointer-events: none;
     }
 
-    .card-navigation > span {
+    .business-card[data-page='activity'] .card-navigation {
+      border-top-color: var(--blue);
+    }
+
+    .business-card[data-page='memo'] .card-navigation {
+      background: #f7f8fc;
+    }
+
+    .card-indicators {
+      display: flex;
+      gap: 0.35rem;
+      align-items: center;
+    }
+
+    .card-indicators > span {
       width: 0.35rem;
       height: 0.35rem;
       border: 1px solid var(--ink);
@@ -1548,24 +1648,39 @@ const activities = [
         background 240ms ease;
     }
 
-    .card-navigation > span.is-current {
+    .card-indicators > span.is-current {
       width: 1.3rem;
       border-radius: 1rem;
       background: var(--ink);
     }
 
     .card-navigation b {
-      margin-left: auto;
+      justify-self: end;
       color: #333;
       font-size: clamp(0.58rem, 2vw, 0.7rem);
       letter-spacing: 0.08em;
+      white-space: nowrap;
+    }
+  }
+
+  @media (max-width: 420px) {
+    .card-navigation {
+      grid-template-columns: 1fr auto;
+    }
+
+    .card-navigation b {
+      display: none;
+    }
+
+    .contact-links {
+      justify-self: end;
     }
   }
 
   @media (max-width: 720px) and (max-height: 650px) {
     .card-face {
       padding-top: 1rem;
-      padding-bottom: 2.8rem;
+      padding-bottom: 4.5rem;
     }
 
     .mobile-identity,
@@ -1615,7 +1730,7 @@ const activities = [
     }
 
     .card-navigation {
-      bottom: 1rem;
+      min-height: 3.8rem;
     }
   }
 
@@ -1637,7 +1752,7 @@ const activities = [
 
     .card-face {
       padding: clamp(0.9rem, 3vh, 1.25rem) clamp(1.2rem, 4vw, 2.4rem)
-        clamp(2.7rem, 9vh, 3.2rem);
+        clamp(3.5rem, 12vh, 4rem);
       border-radius: 8px;
     }
 
@@ -1706,13 +1821,6 @@ const activities = [
       padding-top: 0.5rem;
       font-size: clamp(0.7rem, 1.4vw, 0.82rem);
       line-height: 1.35;
-    }
-
-    .front-actions {
-      grid-column: 2;
-      grid-row: 3;
-      align-self: end;
-      margin-top: 0;
     }
 
     .contact-links a {
@@ -1875,9 +1983,9 @@ const activities = [
     }
 
     .card-navigation {
-      right: clamp(1.2rem, 4vw, 2.4rem);
-      bottom: clamp(0.8rem, 2.8vh, 1.1rem);
-      left: clamp(1.2rem, 4vw, 2.4rem);
+      min-height: 3.2rem;
+      padding: 0.3rem clamp(1.2rem, 4vw, 2.4rem);
+      border-radius: 0 0 8px 8px;
     }
 
     .card-navigation b {

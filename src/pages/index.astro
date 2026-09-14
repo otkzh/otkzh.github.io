@@ -1,28 +1,5 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro'
-
-const activities = [
-  {
-    mark: '01',
-    title: 'OpenStreetMap / Mapillary',
-    description: 'まちを歩き、地域の情報を地図にひらく。',
-  },
-  {
-    mark: '02',
-    title: 'オープンデータ・地域情報マップ',
-    description: 'データを見つけ、使いやすい形で共有する。',
-  },
-  {
-    mark: '03',
-    title: 'Web / 生成AI / オープンソース',
-    description: '小さくつくって、試して、育てていく。',
-  },
-  {
-    mark: '04',
-    title: 'CoderDojo / プログラミング / 電子工作',
-    description: '手を動かす楽しさを、世代をこえて。',
-  },
-]
 ---
 
 <BaseLayout
@@ -31,122 +8,6 @@ const activities = [
   pageClass="home"
   themeColor="#f4f3ef"
 >
-  <div class="desktop-home">
-    <section class="hero-card" aria-labelledby="desktop-name">
-      <div class="hero-copy">
-        <div class="micro-row">
-          <span>CIVIC TECH</span>
-          <span>PROFILE / 2026</span>
-        </div>
-
-        <div class="identity">
-          <h1 id="desktop-name">太田 一穂</h1>
-          <p class="roman-name">Kazuho OHTA</p>
-        </div>
-
-        <p class="hero-statement">
-          地図をつくったり、<br />
-          データをひらいたり、<br />
-          ゆんたくしたり。
-        </p>
-        <p class="hero-tagline">
-          まちのことを、<br />みんなでちょっとおもしろく。
-        </p>
-
-        <div class="hero-actions">
-          <a class="primary-action" href="/redirect/">
-            活動・Podcast・SNS
-            <span aria-hidden="true">↗</span>
-          </a>
-          <a class="text-action" href="#about">活動について ↓</a>
-        </div>
-      </div>
-
-      <aside class="hero-detail" aria-label="肩書きと活動領域">
-        <p class="detail-index">APPROACH / 01</p>
-        <p class="detail-lead">
-          Open the data.<br />Map the city.<br />Meet the people.
-        </p>
-        <dl>
-          <div>
-            <dt>FIELD</dt>
-            <dd>Open Data / OpenStreetMap / CoderDojo</dd>
-          </div>
-          <div>
-            <dt>ROLE</dt>
-            <dd>シビックテックさいたま 共同代表<br />Web Engineer</dd>
-          </div>
-          <div>
-            <dt>VOICE</dt>
-            <dd>Podcast「シビックテック井戸端キャスト」</dd>
-          </div>
-        </dl>
-      </aside>
-    </section>
-
-    <section id="about" class="about-section reveal">
-      <div class="section-index">01 / ABOUT</div>
-      <div class="about-heading">
-        <p class="accent-label">OKINAWA × CIVIC TECH</p>
-        <h2>沖縄でも、<br />シビックテック。</h2>
-      </div>
-      <div class="about-copy">
-        <p>
-          シビックテックは、市民・行政・エンジニアなど、いろんな人が地域でつながって、テクノロジーを使いながら、まちのことを考えたり、試したりする活動です。
-        </p>
-        <p>
-          全国に仲間がいます。沖縄でも、ゆるくつながって、何か一緒にできたらと思っています。
-        </p>
-        <div class="organization-links">
-          <a href="https://www.civictechsaitama.com/"
-            >シビックテックさいたま ↗</a
-          >
-          <a href="https://code4cat.org/">Code for CAT ↗</a>
-        </div>
-      </div>
-    </section>
-
-    <section class="activity-section reveal" aria-labelledby="activity-title">
-      <div class="section-index">02 / ACTIVITY</div>
-      <div class="activity-heading">
-        <p class="accent-label">WHAT I DO</p>
-        <h2 id="activity-title">こんなことを<br />しています</h2>
-      </div>
-      <div class="activity-list">
-        {
-          activities.map((activity) => (
-            <article>
-              <span>{activity.mark}</span>
-              <div>
-                <h3>{activity.title}</h3>
-                <p>{activity.description}</p>
-              </div>
-            </article>
-          ))
-        }
-      </div>
-    </section>
-
-    <section class="koza-section reveal">
-      <div class="koza-title">
-        <p class="accent-label">KOZA GINTENGAI</p>
-        <h2>コザ銀天街での活動</h2>
-      </div>
-      <div class="koza-name">
-        <strong>サイエンスカフェ広場<br />りっかRIKA</strong>
-      </div>
-      <p>
-        科学を話したり、試したり、ゆんたくしたり。研究者や専門家とも出会える、コザ銀天街の小さな科学と交流の場です。
-      </p>
-    </section>
-
-    <footer class="home-footer">
-      <span>太田 一穂 / Kazuho OHTA</span>
-      <a href="/memo/">Memo →</a>
-      <span>© 2026</span>
-    </footer>
-  </div>
-
   <section class="mobile-card-shell" aria-label="太田一穂のデジタル名刺">
     <div class="card-scene">
       <article
@@ -174,7 +35,7 @@ const activities = [
 
             <div class="mobile-statement">
               <p>
-                地図をつくったり、<br />データをひらいたり、<br
+                地図をつくったり、<br />データを活かしたり、<br
                 />ゆんたくしたり。
               </p>
               <span>まちのことを、みんなで<br />ちょっとおもしろく。</span>
@@ -203,7 +64,7 @@ const activities = [
               <p class="activity-kicker">MAP / DATA / PLACE</p>
               <h2>活動</h2>
               <p>
-                地域を歩き、情報を集め、データをひらき、地図やWebで形にする。そこに人が集まり、学び合える場をつくっています。
+                地域を歩き、情報を集め、データを整え、地図やWebで見える形にする。活動を通じて、人が集まり、学び合える場もつくっています。
               </p>
             </div>
 
@@ -211,7 +72,7 @@ const activities = [
               <article class="activity-group">
                 <header><span>01</span><h3>地図とオープンデータ</h3></header>
                 <p>
-                  まちを歩くマッピングパーティーから、地域情報・防災・公共データの可視化まで。
+                  まちを歩き、地域の情報を地図に記録。防災や公共データを見える形にする。
                 </p>
                 <div class="activity-links">
                   <a
@@ -271,7 +132,7 @@ const activities = [
               <article class="activity-group">
                 <header><span>04</span><h3>声と科学のコミュニティ</h3></header>
                 <p>
-                  Podcastと科学コミュニケーションから、埼玉と沖縄をゆるくつなぐ。
+                  Podcastや科学コミュニケーションを通じて、埼玉と沖縄をゆるくつなぐ。
                 </p>
                 <div class="activity-links">
                   <a
@@ -303,7 +164,7 @@ const activities = [
               <p class="memo-kicker">THINK / MAKE / SHARE</p>
               <h2>Memo</h2>
               <p>
-                地図やデータ、Webのこと。考えたことや試したことを、短い記録にしています。
+                地図やデータ、Webのこと。考えたことや試したことを、短く書き留めています。
               </p>
             </div>
 
@@ -311,27 +172,27 @@ const activities = [
               <a href="/memo/around-osm/">
                 <span>01</span>
                 <strong>地図をかくことと<br />地図にかくこと</strong>
-                <i aria-hidden="true">↗</i>
+                <i aria-hidden="true">→</i>
               </a>
               <a href="/memo/atodeyomu/">
                 <span>02</span>
                 <strong>積ん読PDF</strong>
-                <i aria-hidden="true">↗</i>
+                <i aria-hidden="true">→</i>
               </a>
               <a href="/memo/discord/">
                 <span>03</span>
                 <strong>Discord</strong>
-                <i aria-hidden="true">↗</i>
+                <i aria-hidden="true">→</i>
               </a>
               <a href="/memo/markdown/">
                 <span>04</span>
                 <strong>markdownとは</strong>
-                <i aria-hidden="true">↗</i>
+                <i aria-hidden="true">→</i>
               </a>
             </nav>
 
             <a class="memo-all-link" href="/memo/"
-              >すべてのメモを見る <span>↗</span></a
+              >すべてのメモを見る <span>→</span></a
             >
           </section>
         </div>
@@ -583,121 +444,22 @@ const activities = [
       turnCard(-1)
     }
   })
-
-  if ('IntersectionObserver' in window) {
-    document.documentElement.classList.add('reveal-ready')
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) entry.target.classList.add('is-visible')
-        }
-      },
-      { threshold: 0.16 },
-    )
-
-    document
-      .querySelectorAll('.reveal')
-      .forEach((element) => observer.observe(element))
-  }
 </script>
 
 <style is:global>
   body.home {
     --blue: #365cff;
     --ink: #111318;
-    --paper: #f4f3ef;
     --line: rgba(17, 19, 24, 0.2);
-    background:
-      radial-gradient(
-        circle at 78% 5%,
-        rgba(54, 92, 255, 0.1),
-        transparent 26rem
-      ),
-      var(--paper);
     color: var(--ink);
   }
 
-  .micro-row,
   .card-face-header,
-  .roman-name,
-  .accent-label,
-  .section-index,
   .card-navigation,
   .memo-kicker {
     font-family: 'Space Grotesk', sans-serif;
   }
 
-  body.home .site-header {
-    background: rgba(244, 243, 239, 0.88);
-    border-color: var(--line);
-    backdrop-filter: blur(16px);
-  }
-
-  body.home .site-header nav {
-    width: min(100% - 3rem, 1180px);
-  }
-
-  body.home .site-header a {
-    color: var(--ink);
-    font-size: 1rem;
-    letter-spacing: 0.04em;
-  }
-
-  body.home main {
-    width: min(100% - 3rem, 1180px);
-    margin: 2.5rem auto 0;
-  }
-
-  .mobile-card-shell {
-    display: none;
-  }
-
-  .desktop-home {
-    display: grid;
-    gap: 7rem;
-  }
-
-  .hero-card {
-    position: relative;
-    display: grid;
-    grid-template-columns: minmax(0, 1.55fr) minmax(310px, 0.75fr);
-    min-height: 650px;
-    overflow: hidden;
-    border: 1px solid var(--line);
-    background: #fff;
-    box-shadow: 0 30px 70px rgba(31, 38, 58, 0.12);
-  }
-
-  .hero-card::before,
-  .hero-card::after {
-    position: absolute;
-    z-index: 2;
-    width: 28px;
-    height: 28px;
-    content: '';
-  }
-
-  .hero-card::before {
-    top: 18px;
-    left: 18px;
-    border-top: 1px solid var(--ink);
-    border-left: 1px solid var(--ink);
-  }
-
-  .hero-card::after {
-    right: 18px;
-    bottom: 18px;
-    border-right: 1px solid var(--ink);
-    border-bottom: 1px solid var(--ink);
-  }
-
-  .hero-copy {
-    display: flex;
-    flex-direction: column;
-    padding: clamp(3rem, 6vw, 5.5rem);
-  }
-
-  .micro-row,
   .card-face-header {
     display: flex;
     justify-content: space-between;
@@ -707,370 +469,8 @@ const activities = [
     letter-spacing: 0.16em;
   }
 
-  .micro-row span:first-child,
-  .accent-label,
   .card-label {
     color: var(--blue);
-  }
-
-  .identity {
-    margin-top: 4.5rem;
-  }
-
-  .identity h1 {
-    margin: 0;
-    font-size: clamp(3.8rem, 7vw, 6.7rem);
-    font-weight: 750;
-    letter-spacing: -0.08em;
-    line-height: 0.98;
-  }
-
-  .roman-name {
-    margin: 0.8rem 0 0;
-    color: #333;
-    font-size: 1rem;
-    letter-spacing: 0.04em;
-  }
-
-  .hero-statement {
-    margin: 4.2rem 0 0;
-    font-size: clamp(1.7rem, 3.1vw, 2.75rem);
-    font-weight: 750;
-    letter-spacing: -0.04em;
-    line-height: 1.25;
-  }
-
-  .hero-tagline {
-    margin: 1rem 0 0;
-    color: #333;
-    font-size: 1.05rem;
-    line-height: 1.55;
-  }
-
-  .hero-actions {
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-    margin-top: auto;
-    padding-top: 3rem;
-  }
-
-  .primary-action {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 2rem;
-    min-width: 235px;
-    padding: 0.8rem 0.85rem 0.8rem 1.1rem;
-    overflow: hidden;
-    background: var(--blue);
-    color: #fff;
-    font-size: 1rem;
-    font-weight: 700;
-    text-decoration: none;
-    transition:
-      transform 180ms ease,
-      box-shadow 180ms ease;
-  }
-
-  .primary-action:hover {
-    color: #fff;
-    transform: translateY(-3px);
-    box-shadow: 0 12px 24px rgba(54, 92, 255, 0.25);
-  }
-
-  .primary-action span {
-    display: grid;
-    width: 2rem;
-    height: 2rem;
-    border-radius: 50%;
-    place-items: center;
-    background: #fff;
-    color: var(--blue);
-    transition: transform 180ms ease;
-  }
-
-  .primary-action:hover span {
-    transform: rotate(45deg);
-  }
-
-  .text-action {
-    position: relative;
-    display: inline-flex;
-    padding: 0.45rem 0;
-    color: var(--ink);
-    font-size: 1rem;
-    font-weight: 700;
-    text-decoration: none;
-  }
-
-  .text-action::after {
-    position: absolute;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    height: 2px;
-    background: var(--blue);
-    content: '';
-    transform: scaleX(0.25);
-    transform-origin: left;
-    transition: transform 180ms ease;
-  }
-
-  .text-action:hover {
-    color: var(--ink);
-  }
-
-  .text-action:hover::after {
-    transform: scaleX(1);
-  }
-
-  .hero-detail {
-    display: flex;
-    flex-direction: column;
-    padding: clamp(2.5rem, 5vw, 4rem);
-    border-left: 1px solid var(--line);
-    background:
-      linear-gradient(rgba(54, 92, 255, 0.08) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(54, 92, 255, 0.08) 1px, transparent 1px),
-      #f6f7fb;
-    background-size: 28px 28px;
-  }
-
-  .detail-index {
-    margin: 0;
-    color: var(--blue);
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 0.875rem;
-    font-weight: 700;
-    letter-spacing: 0.16em;
-  }
-
-  .detail-lead {
-    margin: clamp(2.5rem, 7vw, 5.5rem) 0 2rem;
-    color: var(--blue);
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: clamp(2rem, 3.8vw, 3.7rem);
-    font-weight: 600;
-    letter-spacing: -0.055em;
-    line-height: 1.12;
-  }
-
-  .hero-detail dl {
-    margin: auto 0 0;
-  }
-
-  .hero-detail dl > div {
-    padding: 1rem 0;
-    border-top: 1px solid var(--line);
-  }
-
-  .hero-detail dt,
-  .section-index {
-    color: var(--blue);
-    font-size: 0.875rem;
-    font-weight: 800;
-    letter-spacing: 0.15em;
-  }
-
-  .hero-detail dd {
-    margin: 0.35rem 0 0;
-    font-size: 0.9375rem;
-    line-height: 1.55;
-  }
-
-  .about-section,
-  .activity-section {
-    display: grid;
-    grid-template-columns: 130px minmax(260px, 0.8fr) minmax(360px, 1.1fr);
-    gap: clamp(2rem, 6vw, 5rem);
-    padding-top: 2rem;
-    border-top: 1px solid var(--ink);
-  }
-
-  .accent-label {
-    margin: 0 0 1rem;
-    font-size: 0.875rem;
-    font-weight: 800;
-    letter-spacing: 0.15em;
-  }
-
-  .about-heading h2,
-  .activity-heading h2,
-  .koza-title h2 {
-    margin: 0;
-    font-size: clamp(2.5rem, 5vw, 4.7rem);
-    letter-spacing: -0.06em;
-    line-height: 1.08;
-  }
-
-  .about-copy {
-    align-self: end;
-  }
-
-  .about-copy > p {
-    max-width: 38rem;
-    margin: 0 0 1.2rem;
-    font-size: clamp(1rem, 1.8vw, 1.24rem);
-  }
-
-  .organization-links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem 1.5rem;
-    margin-top: 2rem;
-  }
-
-  .organization-links a {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.65rem 0.9rem;
-    border: 1px solid var(--ink);
-    background: #fff;
-    color: var(--ink);
-    font-size: 1rem;
-    font-weight: 750;
-    text-decoration: none;
-    box-shadow: 4px 4px 0 var(--blue);
-    transition:
-      color 180ms ease,
-      background 180ms ease,
-      transform 180ms ease,
-      box-shadow 180ms ease;
-  }
-
-  .organization-links a:hover {
-    background: var(--ink);
-    color: #fff;
-    box-shadow: 1px 1px 0 var(--blue);
-    transform: translate(3px, 3px);
-  }
-
-  .activity-section {
-    grid-template-columns: 130px minmax(260px, 0.8fr) minmax(400px, 1.1fr);
-  }
-
-  .activity-list {
-    display: grid;
-  }
-
-  .activity-list article {
-    display: grid;
-    grid-template-columns: 38px 1fr;
-    gap: 1.25rem;
-    padding: 1.35rem 0;
-    border-top: 1px solid var(--line);
-  }
-
-  .activity-list article:last-child {
-    border-bottom: 1px solid var(--line);
-  }
-
-  .activity-list article > span {
-    color: var(--blue);
-    font-family: ui-monospace, monospace;
-    font-size: 0.875rem;
-    font-weight: 700;
-  }
-
-  .activity-list h3 {
-    margin: 0;
-    font-size: 1rem;
-  }
-
-  .activity-list p {
-    margin: 0.35rem 0 0;
-    color: #333;
-    font-size: 0.9375rem;
-  }
-
-  .koza-section {
-    display: grid;
-    grid-template-columns: 1.1fr 0.75fr 1fr;
-    gap: clamp(2rem, 5vw, 5rem);
-    align-items: end;
-    padding: clamp(2.5rem, 6vw, 5rem);
-    background: var(--blue);
-    color: #fff;
-  }
-
-  .koza-title .accent-label {
-    color: rgba(255, 255, 255, 0.65);
-  }
-
-  .koza-title h2 {
-    font-size: clamp(2.2rem, 4vw, 3.8rem);
-  }
-
-  .koza-name strong {
-    font-size: clamp(1.4rem, 2.5vw, 2.2rem);
-    line-height: 1.35;
-  }
-
-  .koza-section > p {
-    margin: 0;
-    font-size: 1rem;
-  }
-
-  .home-footer {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    gap: 1rem;
-    padding: 2rem 0 2.5rem;
-    border-top: 1px solid var(--ink);
-    font-size: 0.875rem;
-  }
-
-  .home-footer a {
-    color: var(--ink);
-    font-weight: 700;
-    text-decoration-color: var(--blue);
-    text-decoration-thickness: 2px;
-  }
-
-  .home-footer span:last-child {
-    text-align: right;
-  }
-
-  .reveal {
-    transition:
-      opacity 700ms ease,
-      transform 700ms ease;
-  }
-
-  .reveal-ready .reveal {
-    opacity: 0;
-    transform: translateY(24px);
-  }
-
-  .reveal-ready .reveal.is-visible {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  @media (max-width: 900px) and (min-width: 721px) {
-    .hero-card {
-      grid-template-columns: 1fr 300px;
-    }
-
-    .about-section,
-    .activity-section {
-      grid-template-columns: 90px 1fr;
-    }
-
-    .about-copy,
-    .activity-list {
-      grid-column: 2;
-    }
-
-    .koza-section {
-      grid-template-columns: 1fr 1fr;
-    }
-
-    .koza-section > p {
-      grid-column: 2;
-    }
   }
 
   /* The three-page card is the canonical experience on every device. */
@@ -1096,10 +496,6 @@ const activities = [
       width: 100%;
       height: 100dvh;
       margin: 0;
-    }
-
-    .desktop-home {
-      display: none;
     }
 
     .mobile-card-shell {
@@ -2071,10 +1467,8 @@ const activities = [
       scroll-behavior: auto;
     }
 
-    .reveal,
     .card-inner,
-    .business-card,
-    .primary-action {
+    .business-card {
       transition: none;
     }
   }

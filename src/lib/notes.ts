@@ -8,9 +8,11 @@ interface NoteFrontmatter {
 }
 
 const modules = import.meta.glob<MarkdownInstance<NoteFrontmatter>>(
-  '../content/note/*.md',
+  '../content/fragments/*.md',
   { eager: true },
 )
+
+export const FRAGMENTS_PAGE_SIZE = 10
 
 export const notes = Object.entries(modules)
   .map(([path, post]) => {

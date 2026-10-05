@@ -11,9 +11,9 @@ const { title, description } = Astro.props
 <BaseLayout title={title} description={description} pageClass="note-page" themeColor="#f4f3ef">
   <div class="note-page-shell">
     <header class="note-masthead">
-      <a class="note-brand" href="/note/">note</a>
-      <nav aria-label="noteのナビゲーション">
-        <a href="/note/">記事一覧</a>
+      <a class="note-brand" href="/" aria-label="太田一穂の名刺へ">Kazuho OHTA</a>
+      <nav aria-label="Fragmentsのナビゲーション">
+        <a href="/fragments/">記事一覧</a>
         <a href="/">名刺へ</a>
       </nav>
     </header>
@@ -55,7 +55,11 @@ const { title, description } = Astro.props
   .note-brand {
     color: var(--ink);
     font-family: 'Space Grotesk', sans-serif;
-    font-size: 1.7rem;
+    font-size: 0.875rem;
+    letter-spacing: 0.08em;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
     font-weight: 700;
     text-decoration: none;
   }

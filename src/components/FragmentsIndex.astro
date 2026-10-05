@@ -1,0 +1,75 @@
+---
+import NoteLayout from '../layouts/NoteLayout.astro'
+import { notes, formatNoteDate, FRAGMENTS_PAGE_SIZE } from '../lib/notes'
+
+interface Props { currentPage?: number }
+const { currentPage = 1 } = Astro.props
+const totalPages = Math.max(1, Math.ceil(notes.length / FRAGMENTS_PAGE_SIZE))
+const start = (currentPage - 1) * FRAGMENTS_PAGE_SIZE
+const items = notes.slice(start, start + FRAGMENTS_PAGE_SIZE)
+const pageHref = (page: number) => page === 1 ? '/fragments/' : `/fragments/page/${page}/`
+const pageTitle = currentPage === 1 ? 'Fragments — 思考の断片' : `Fragments — 思考の断片 (${currentPage} / ${totalPages})`
+---
+
+<NoteLayout title={pageTitle} description="考えたこと、調べたこと、途中にあること。思考の断片や活動の記録を残す、太田一穂のFragmentsです。">
+  <header class="note-index-hero">
+    <p class="note-kicker">THINK / MAKE / SHARE</p>
+    <h1>Fragments</h1>
+    <p class="note-subtitle">思考の断片</p>
+    <p>考えたこと、調べたこと、途中にあること。</p>
+  </header>
+  <section class="note-archive" aria-labelledby="archive-title">
+    <div class="archive-heading">
+      <h2 id="archive-title">記事一覧</h2>
+      <span>新しい順 · {start + 1}–{start + items.length} / {notes.length}件</span>
+    </div>
+    <ol class="note-list">
+      {items.map((note) => (
+        <li>
+          <a href={`/fragments/${note.slug}/`}>
+            <time datetime={note.date}>{formatNoteDate(note.date)}</time>
+            <div>
+              <h3>{note.title}</h3>
+              <p>{note.summary}</p>
+            </div>
+          </a>
+        </li>
+      ))}
+    </ol>
+    <nav class="fragments-pagination" aria-label="記事一覧のページ切り替え">
+      {currentPage > 1 && <a href={pageHref(currentPage - 1)} rel="prev">前へ</a>}
+      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+        page === currentPage
+          ? <span aria-current="page" aria-label={`${page}ページ目、現在のページ`}>{page}</span>
+          : <a href={pageHref(page)} aria-label={`${page}ページ目へ`}>{page}</a>
+      ))}
+      {currentPage < totalPages && <a href={pageHref(currentPage + 1)} rel="next">次へ</a>}
+    </nav>
+  </section>
+</NoteLayout>
+
+<style>
+  .note-index-hero { padding: clamp(2rem, 5vw, 3.5rem) clamp(1.2rem, 4vw, 3rem); }
+  .note-kicker { margin: 0; color: #2447af; font: 700 0.875rem 'Space Grotesk', sans-serif; letter-spacing: 0.12em; }
+  h1 { margin: 0.2rem 0 1rem; font: 600 clamp(3rem, 8vw, 5rem)/1.1 'Space Grotesk', sans-serif; letter-spacing: -0.06em; }
+  .note-subtitle { margin: 0 0 0.6rem; font-size: 1.1rem; font-weight: 500; line-height: 1.6; }
+  .note-index-hero > p:last-child { margin: 0; font-size: 1rem; line-height: 1.8; }
+  .note-archive { padding: 0 clamp(1.2rem, 4vw, 3rem) 2rem; }
+  .archive-heading { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; justify-content: space-between; align-items: baseline; padding-bottom: 0.8rem; }
+  .archive-heading h2 { margin: 0; font-size: 1.25rem; }
+  .archive-heading span { font-size: 0.875rem; color: #444; }
+  .note-list { margin: 0; padding: 0; list-style: none; }
+  .note-list li { border-top: 1px solid var(--line); }
+  .note-list a { display: grid; grid-template-columns: 9rem minmax(0, 1fr); gap: 1rem; padding: 1.5rem 0; color: var(--ink); text-decoration: none; }
+  .note-list time { padding-top: 0.2rem; }
+  .note-list h3 { margin: 0 0 0.55rem; font-size: clamp(1.15rem, 2.3vw, 1.5rem); line-height: 1.5; overflow-wrap: anywhere; }
+  .note-list p { margin: 0; color: #333; font-size: 0.95rem; line-height: 1.8; }
+  .note-list a:hover h3 { color: #2447af; text-decoration: underline; text-underline-offset: 0.2em; }
+  .fragments-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 1.5rem; }
+  .fragments-pagination a, .fragments-pagination span { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; padding: 0.4rem 0.8rem; border: 1px solid var(--line); border-radius: 999px; font-size: 0.95rem; text-decoration: none; color: #2447af; }
+  .fragments-pagination [aria-current="page"] { background: var(--blue); border-color: var(--blue); color: #fff; }
+  .fragments-pagination a:hover { background: #eceffd; }
+  @media (max-width: 700px) {
+    .note-list a { grid-template-columns: 1fr; gap: 0.5rem; }
+  }
+</style>

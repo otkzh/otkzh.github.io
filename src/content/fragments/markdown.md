@@ -2,7 +2,7 @@
 title: markdownとは
 date: "2021-08-25T13:11:03+09:00"
 dateSource: git-first-record
-summary: 見出しやリスト、引用、ソースコードの書き方を試しながら、Markdownの基本的な記法をまとめました。
+summary: 見出し、リスト、引用、ソースコードの書き方を試す。Markdownの基本的な記法をまとめた記録である。
 ---
 
 HTMLを更に*簡略化*したもの

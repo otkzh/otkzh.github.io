@@ -1,0 +1,15 @@
+---
+import FragmentsIndex from '../../../components/FragmentsIndex.astro'
+import { notes, FRAGMENTS_PAGE_SIZE } from '../../../lib/notes'
+
+export function getStaticPaths() {
+  const totalPages = Math.ceil(notes.length / FRAGMENTS_PAGE_SIZE)
+  return Array.from({ length: Math.max(0, totalPages - 1) }, (_, i) => ({
+    params: { page: String(i + 2) },
+    props: { currentPage: i + 2 },
+  }))
+}
+interface Props { currentPage: number }
+const { currentPage } = Astro.props
+---
+<FragmentsIndex currentPage={currentPage} />

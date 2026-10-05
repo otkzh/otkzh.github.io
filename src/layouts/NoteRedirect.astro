@@ -1,0 +1,19 @@
+---
+interface Props { target: string }
+const { target } = Astro.props
+---
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <meta http-equiv="refresh" content={`0; url=${target}`} />
+    <link rel="canonical" href={new URL(target, Astro.site)} />
+    <title>noteへ移動します</title>
+    <script is:inline define:vars={{ target }}>
+      window.location.replace(target + window.location.hash)
+    </script>
+  </head>
+  <body><p><a href={target}>noteへ移動する</a></p></body>
+</html>

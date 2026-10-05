@@ -1,0 +1,54 @@
+---
+import NoteLayout from '../../layouts/NoteLayout.astro'
+import { notes, formatNoteDate } from '../../lib/notes'
+
+export function getStaticPaths() {
+  return notes.map((note) => ({ params: { slug: note.slug }, props: { note } }))
+}
+interface Props { note: (typeof notes)[number] }
+const { note } = Astro.props
+const { Content } = note.post
+---
+
+<NoteLayout title={note.title} description={note.summary}>
+  <article class="note-article">
+    <header class="note-article-header">
+      <time datetime={note.date}>{formatNoteDate(note.date)}</time>
+      <h1>{note.title}</h1>
+      <p class="note-summary">{note.summary}</p>
+      {note.dateSource === 'git-first-record' && <p class="note-date-origin">日時は、このサイトで最初に記録された時点のものです。</p>}
+    </header>
+    <div class="note-prose"><Content /></div>
+  </article>
+  <nav class="article-end" aria-label="記事一覧へ戻る">
+    <a href="/note/">すべてのnoteへ戻る</a>
+  </nav>
+</NoteLayout>
+
+<style is:global>
+  .note-article { width: min(100%, 850px); margin-inline: auto; padding: clamp(2rem, 5vw, 4rem) clamp(1.2rem, 5vw, 3.5rem); }
+  .note-article-header { padding-bottom: 2rem; margin-bottom: 2.5rem; border-bottom: 1px solid var(--line); }
+  .note-article-header h1 { margin: 0.7rem 0 1.2rem; font-size: clamp(1.8rem, 4.5vw, 2.7rem); line-height: 1.45; letter-spacing: -0.035em; overflow-wrap: anywhere; }
+  .note-summary { margin: 0; font-size: 1rem; line-height: 1.9; color: #333; }
+  .note-date-origin { margin: 1rem 0 0; font-size: 0.875rem; color: #444; }
+  .note-prose { overflow-wrap: anywhere; }
+  .note-prose > :first-child { margin-top: 0; }
+  .note-prose > :last-child { margin-bottom: 0; }
+  .note-prose h2 { margin: 2.8rem 0 1.2rem; padding-top: 1rem; border-top: 1px solid var(--line); font-size: clamp(1.3rem, 3vw, 1.7rem); line-height: 1.5; }
+  .note-prose h3 { margin: 2rem 0 1rem; font-size: 1.2rem; color: #2447af; }
+  .note-prose h4, .note-prose h5, .note-prose h6 { margin: 1.8rem 0 0.8rem; font-size: 1rem; }
+  .note-prose p, .note-prose li { font-size: 1rem; line-height: 1.9; }
+  .note-prose p { margin: 0 0 1.5rem; }
+  .note-prose ul, .note-prose ol { padding-left: 1.4rem; }
+  .note-prose li::marker { color: #2447af; }
+  .note-prose a { color: #2447af; text-underline-offset: 0.2em; }
+  .note-prose blockquote { margin: 2rem 0; padding-left: 1.2rem; border-left: 3px solid var(--blue); color: #333; }
+  .note-prose hr { margin: 2rem 0; border: 0; border-top: 1px solid var(--line); }
+  .note-prose img { max-width: 100%; height: auto; }
+  .note-prose code { background: #eceffd; color: #233ebb; padding: 0.1em 0.3em; font-size: 0.95em; }
+  .note-prose pre { max-width: 100%; overflow-x: auto; line-height: 1.65; }
+  .note-prose pre code { background: transparent; color: inherit; padding: 0; }
+  .article-end { padding: 0 clamp(1.2rem, 5vw, 3.5rem) 2rem; }
+  .article-end a { display: inline-flex; align-items: center; min-height: 44px; padding: 0.4rem 0.8rem; border: 1px solid var(--line); border-radius: 999px; color: #2447af; font-size: 0.95rem; text-decoration: none; }
+  .article-end a:hover { background: #eceffd; }
+</style>

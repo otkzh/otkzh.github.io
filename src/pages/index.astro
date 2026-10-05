@@ -39,7 +39,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
                 />ゆんたくしたり。
               </p>
               <span>まちのことを、みんなで<br />ちょっとおもしろく。</span>
-              <a class="activity-invitation" href="/?card=activity">こんなことをしています <span aria-hidden="true">→</span></a>
+              <a class="activity-invitation" href="/?card=activity">こんなことをしています</a>
             </div>
 
             <div class="mobile-role">
@@ -413,34 +413,19 @@ import BaseLayout from '../layouts/BaseLayout.astro'
   })
   if (card) card.dataset.page = pageNames[currentPage]
 
-  // One gentle invitation on the initial profile view; interaction cancels it.
-  const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)')
-  const hint = card?.querySelector<HTMLElement>('.activity-invitation')
-  let hintTimer: number | undefined
-  const dismissInvitation = () => {
-    window.clearTimeout(hintTimer)
-    hint?.classList.remove('is-hinting')
-  }
-
-  if (currentPage === 0 && !motionPreference.matches) {
-    hintTimer = window.setTimeout(() => {
-      if (currentPage === 0 && !motionPreference.matches) {
-        hint?.classList.add('is-hinting')
-      }
-    }, 1600)
-  }
-  hint?.addEventListener('click', (event) => {
+  const invitation = card?.querySelector<HTMLElement>('.activity-invitation')
+  // Choose a readable ink color and a brighter glow of the same hue per visit.
+  const neonHues = [220, 265, 325, 165, 25]
+  const neonHue = neonHues[Math.floor(Math.random() * neonHues.length)]
+  invitation?.style.setProperty('--neon-ink', `hsl(${neonHue} 75% 30%)`)
+  invitation?.style.setProperty('--neon-glow', `hsl(${neonHue} 90% 55% / 0.65)`)
+  invitation?.addEventListener('click', (event) => {
     event.preventDefault()
-    dismissInvitation()
     if (currentPage === 0) {
       turnCard(1)
       card?.focus({ preventScroll: true })
     }
   })
-  hint?.addEventListener('animationend', dismissInvitation, { once: true })
-  card?.addEventListener('pointerdown', dismissInvitation, { once: true })
-  card?.addEventListener('keydown', dismissInvitation, { once: true })
-  motionPreference.addEventListener('change', dismissInvitation)
 
   card?.addEventListener('pointerdown', (event) => {
     pointerStartX = event.clientX
@@ -1617,54 +1602,46 @@ import BaseLayout from '../layouts/BaseLayout.astro'
   }
 
   .activity-invitation {
-    position: relative;
+    --neon-ink: #2447af;
+    --neon-glow: rgba(54, 92, 255, 0.65);
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
     min-height: 44px;
     margin-top: 0.65rem;
     padding: 0.2rem 0;
-    color: var(--blue);
+    color: var(--neon-ink);
     font-size: 0.95rem;
     font-weight: 500;
     line-height: 1.5;
     text-decoration: none;
+    text-shadow: 0 0 3px var(--neon-glow);
   }
 
-  .activity-invitation::after {
-    position: absolute;
-    right: 0;
-    bottom: 0.15rem;
-    left: 0;
-    height: 1px;
-    background: currentColor;
-    opacity: 0.55;
-    transform-origin: left center;
-    content: '';
-    pointer-events: none;
+  .card-front.is-active .activity-invitation {
+    animation: neon-breathe 4200ms ease-in-out infinite;
   }
 
-  .activity-invitation.is-hinting::after {
-    animation: reveal-activity-link 1100ms ease-out 1;
-  }
-
-  .activity-invitation:hover::after,
-  .activity-invitation:focus-visible::after {
-    opacity: 1;
+  .activity-invitation:hover,
+  .activity-invitation:focus-visible {
+    text-decoration: underline;
+    text-underline-offset: 0.25em;
   }
 
   .activity-invitation:focus-visible {
-    outline: 2px solid var(--blue);
+    outline: 2px solid var(--neon-ink);
     outline-offset: 4px;
   }
 
-  @keyframes reveal-activity-link {
-    from { opacity: 0; transform: scaleX(0); }
-    to { opacity: 0.55; transform: scaleX(1); }
+  @keyframes neon-breathe {
+    0%, 100% { text-shadow: 0 0 2px var(--neon-glow); }
+    50% {
+      text-shadow: 0 0 4px var(--neon-glow),
+        0 0 12px var(--neon-glow), 0 0 24px var(--neon-glow);
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .activity-invitation.is-hinting::after {
+    .card-front.is-active .activity-invitation {
       animation: none;
     }
 

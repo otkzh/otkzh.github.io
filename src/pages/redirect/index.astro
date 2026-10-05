@@ -1,5 +1,5 @@
 ---
-const target = '/?card=activity'
+const target = '/'
 ---
 
 <!doctype html>
@@ -9,15 +9,15 @@ const target = '/?card=activity'
     <meta name="viewport" content="width=device-width" />
     <meta name="robots" content="noindex" />
     <meta http-equiv="refresh" content={`0; url=${target}`} />
-    <link rel="canonical" href="https://otkzh.github.io/?card=activity" />
-    <title>活動 | 太田一穂</title>
+    <link rel="canonical" href="https://otkzh.github.io/" />
+    <title>太田一穂</title>
     <script is:inline>
-      window.location.replace('/?card=activity')
+      window.location.replace('/')
     </script>
   </head>
   <body>
     <main>
-      <p>活動ページへ移動します。</p>
+      <p>トップページへ移動します。</p>
       <a href={target}>自動的に移動しない場合はこちら</a>
     </main>
   </body>

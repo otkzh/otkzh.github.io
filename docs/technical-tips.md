@@ -143,7 +143,7 @@ const isTap = Math.abs(deltaX) < 8 && Math.abs(deltaY) < 8
 - 活動: `/?card=activity`
 - Memo: `/?card=memo`
 
-初期表示時にもクエリを読み、該当面を直接表示します。`/redirect/`は静的HTMLから`/?card=activity`へ遷移させることで、GitHub Pagesでもサーバー側リダイレクトを必要としません。
+初期表示時にもクエリを読み、該当面を直接表示します。`/redirect/`は静的HTMLからトップページ（`/`）へ遷移させることで、GitHub Pagesでもサーバー側リダイレクトを必要としません。
 
 ## 端末傾きは装飾だけに使う
 

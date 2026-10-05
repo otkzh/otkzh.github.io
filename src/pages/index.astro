@@ -61,18 +61,36 @@ import BaseLayout from '../layouts/BaseLayout.astro'
             </div>
 
             <div class="activity-overview">
-              <p class="activity-kicker">MAP / DATA / PLACE</p>
+              <p class="activity-kicker">MEET / TALK / EXPLORE</p>
               <h2>活動</h2>
-              <p>
-                地域を歩き、情報を集め、データを整え、地図やWebで見える形にする。活動を通じて、人が集まり、学び合える場もつくっています。
-              </p>
+              <section class="featured-events" aria-labelledby="featured-events-title">
+                <p class="event-eyebrow">PICK UP / 2026.10.10</p>
+                <h3 id="featured-events-title">りっかRIKAゆんたく会</h3>
+                <p>科学のことを、ゆんたくしよう。<br />沖縄県沖縄市で開催する2つの会。</p>
+                <a class="featured-event-link" href="https://riccarika-yuntaku-03.peatix.com/view" target="_blank" rel="noreferrer">
+                  <time datetime="2026-10-10T13:00:00+09:00">10月10日（土）13:00</time>
+                  <strong>#3 宇宙について考える</strong>
+                  <span>詳細・申込 ↗</span>
+                </a>
+                <a class="featured-event-link" href="https://riccarika-yuntaku-04.peatix.com/view" target="_blank" rel="noreferrer">
+                  <time datetime="2026-10-10T19:00:00+09:00">10月10日（土）19:00</time>
+                  <strong>#4 時間とは何だ？</strong>
+                  <span>詳細・申込 ↗</span>
+                </a>
+                <a class="event-all-link" href="https://riccarika.peatix.com/" target="_blank" rel="noreferrer">りっかRIKAのイベント一覧 ↗</a>
+              </section>
             </div>
 
-            <div class="activity-groups" aria-label="こんなことをしています">
+            <div class="activity-groups" aria-labelledby="activity-history-title">
+              <header class="activity-history-intro">
+                <p class="activity-kicker">ACTIVITY SUMMARY</p>
+                <h3 id="activity-history-title">これまでの活動</h3>
+                <p>地図・データの活用から、学び合う場づくりまで。これまで取り組んできた活動をまとめました。</p>
+              </header>
               <article class="activity-group">
                 <header><span>01</span><h3>地図とオープンデータ</h3></header>
                 <p>
-                  まちを歩き、地域の情報を地図に記録。防災や公共データを見える形にする。
+                  OpenStreetMapで地域の情報を記録し、Code for SAITAMAで防災や公共データの可視化に取り組んできました。
                 </p>
                 <div class="activity-links">
                   <a
@@ -93,7 +111,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
                   <span>02</span><h3>シビックテックと場づくり</h3>
                 </header>
                 <p>
-                  勉強会、相談室、アイデアソンやハッカソンを通じて、地域で試せるつながりを育てる。
+                  シビックテックさいたまやCode for CATで、勉強会、相談室、アイデアソン・ハッカソンなどの場づくりに取り組んできました。
                 </p>
                 <div class="activity-links">
                   <a
@@ -112,8 +130,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
               <article class="activity-group">
                 <header><span>03</span><h3>教育とものづくり</h3></header>
                 <p>
-                  プログラミング、電子工作、Raspberry
-                  Pi。地域課題とデータを学びの入口に。
+                  CoderDojoでの学びの支援、立正大学での授業、Raspberry Piの共著など、プログラミングや電子工作を伝えてきました。
                 </p>
                 <div class="activity-links">
                   <a
@@ -132,7 +149,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
               <article class="activity-group">
                 <header><span>04</span><h3>声と科学のコミュニティ</h3></header>
                 <p>
-                  Podcastや科学コミュニケーションを通じて、地域や立場を越えて人と人をゆるくつなぐ。
+                  「シビックテック井戸端キャスト」やりっかRIKA LABを通じて、地域の活動や科学を語り合う機会をつくってきました。
                 </p>
                 <div class="activity-links">
                   <a
@@ -840,6 +857,74 @@ import BaseLayout from '../layouts/BaseLayout.astro'
       margin-top: clamp(1.2rem, 4.5vh, 2.8rem);
     }
 
+    .featured-events {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: var(--blue);
+      color: #fff;
+      border-radius: 8px;
+    }
+
+    .event-eyebrow {
+      margin: 0 0 0.4rem;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.875rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+    }
+
+    .featured-events h3,
+    .activity-history-intro h3 {
+      margin: 0;
+      font-size: 1.2rem;
+      line-height: 1.5;
+    }
+
+    .featured-events > p:not(.event-eyebrow),
+    .activity-history-intro > p:last-child {
+      margin: 0.5rem 0;
+      font-size: 0.95rem;
+      line-height: 1.7;
+    }
+
+    .featured-event-link {
+      display: grid;
+      gap: 0.25rem;
+      margin-top: 0.7rem;
+      padding: 0.7rem;
+      border: 1px solid #fff;
+      border-radius: 4px;
+      background: #fff;
+      color: #222;
+      text-decoration: none;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+
+    .featured-event-link span {
+      color: var(--blue);
+      font-weight: 700;
+    }
+
+    .featured-event-link:hover,
+    .featured-event-link:focus-visible {
+      background: #edf0ff;
+      outline: 2px solid #fff;
+      outline-offset: 3px;
+    }
+
+    .event-all-link {
+      display: inline-block;
+      padding: 0.65rem 0;
+      color: #fff;
+      font-size: 0.95rem;
+      text-underline-offset: 0.2em;
+    }
+
+    .activity-history-intro {
+      padding-bottom: 0.7rem;
+    }
+
     .activity-kicker {
       margin: 0 0 0.25rem;
       color: var(--blue);
@@ -1300,7 +1385,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
 
     .card-activity {
       display: grid;
-      grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
       grid-template-rows: auto minmax(0, 1fr);
       column-gap: clamp(1.5rem, 5vw, 3.5rem);
       overflow: hidden;
@@ -1313,7 +1398,10 @@ import BaseLayout from '../layouts/BaseLayout.astro'
     .activity-overview {
       grid-column: 1;
       grid-row: 2;
-      align-self: center;
+      align-self: stretch;
+      min-height: 0;
+      overflow-y: auto;
+      scrollbar-width: none;
       margin-top: 0;
     }
 
@@ -1479,7 +1567,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
     }
 
     .card-activity {
-      grid-template-columns: minmax(0, 0.54fr) minmax(0, 1.46fr);
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     }
 
     .card-memo {

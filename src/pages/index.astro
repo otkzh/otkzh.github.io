@@ -28,8 +28,6 @@ import BaseLayout from '../layouts/BaseLayout.astro'
               <span>01 / 03</span>
             </div>
 
-            <span class="page-turn-hint" aria-hidden="true"></span>
-
             <div class="mobile-identity">
               <h1>太田 一穂</h1>
               <p>Kazuho OHTA</p>
@@ -41,6 +39,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
                 />ゆんたくしたり。
               </p>
               <span>まちのことを、みんなで<br />ちょっとおもしろく。</span>
+              <a class="activity-invitation" href="/?card=activity">こんなことをしています <span aria-hidden="true">→</span></a>
             </div>
 
             <div class="mobile-role">
@@ -416,9 +415,9 @@ import BaseLayout from '../layouts/BaseLayout.astro'
 
   // One gentle invitation on the initial profile view; interaction cancels it.
   const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)')
-  const hint = card?.querySelector<HTMLElement>('.page-turn-hint')
+  const hint = card?.querySelector<HTMLElement>('.activity-invitation')
   let hintTimer: number | undefined
-  const dismissTurnHint = () => {
+  const dismissInvitation = () => {
     window.clearTimeout(hintTimer)
     hint?.classList.remove('is-hinting')
   }
@@ -430,10 +429,18 @@ import BaseLayout from '../layouts/BaseLayout.astro'
       }
     }, 1600)
   }
-  hint?.addEventListener('animationend', dismissTurnHint, { once: true })
-  card?.addEventListener('pointerdown', dismissTurnHint, { once: true })
-  card?.addEventListener('keydown', dismissTurnHint, { once: true })
-  motionPreference.addEventListener('change', dismissTurnHint)
+  hint?.addEventListener('click', (event) => {
+    event.preventDefault()
+    dismissInvitation()
+    if (currentPage === 0) {
+      turnCard(1)
+      card?.focus({ preventScroll: true })
+    }
+  })
+  hint?.addEventListener('animationend', dismissInvitation, { once: true })
+  card?.addEventListener('pointerdown', dismissInvitation, { once: true })
+  card?.addEventListener('keydown', dismissInvitation, { once: true })
+  motionPreference.addEventListener('change', dismissInvitation)
 
   card?.addEventListener('pointerdown', (event) => {
     pointerStartX = event.clientX
@@ -1593,33 +1600,71 @@ import BaseLayout from '../layouts/BaseLayout.astro'
     }
   }
 
-  .page-turn-hint {
+  @media (orientation: landscape) and (max-height: 560px) {
+    .mobile-statement {
+      grid-row: 2 / 4;
+      align-self: stretch;
+      min-height: 0;
+      padding-top: 0.5rem;
+      overflow-y: auto;
+      scrollbar-width: none;
+    }
+
+    .mobile-statement p {
+      font-size: 1.25rem;
+      line-height: 1.35;
+    }
+  }
+
+  .activity-invitation {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 44px;
+    margin-top: 0.65rem;
+    padding: 0.2rem 0;
+    color: var(--blue);
+    font-size: 0.95rem;
+    font-weight: 500;
+    line-height: 1.5;
+    text-decoration: none;
+  }
+
+  .activity-invitation::after {
     position: absolute;
-    top: 12%;
     right: 0;
-    bottom: 6rem;
-    width: clamp(32px, 4vw, 48px);
-    border-radius: 70% 0 0 70%;
-    border-right: 5px solid var(--blue);
-    background: linear-gradient(90deg, transparent, rgba(17, 19, 24, 0.24) 45%, #f4f3ef 68%, #fff 90%);
-    box-shadow: -10px 0 16px -8px rgba(17, 19, 24, 0.4);
-    opacity: 0;
-    transform: scaleX(0.1);
-    transform-origin: right center;
+    bottom: 0.15rem;
+    left: 0;
+    height: 1px;
+    background: currentColor;
+    opacity: 0.55;
+    transform-origin: left center;
+    content: '';
     pointer-events: none;
   }
 
-  .page-turn-hint.is-hinting {
-    animation: invite-page-turn 2400ms ease-in-out 1;
+  .activity-invitation.is-hinting::after {
+    animation: reveal-activity-link 1100ms ease-out 1;
   }
 
-  @keyframes invite-page-turn {
-    0%, 100% { opacity: 0; transform: scaleX(0.1); }
-    30%, 65% { opacity: 1; transform: scaleX(1); }
+  .activity-invitation:hover::after,
+  .activity-invitation:focus-visible::after {
+    opacity: 1;
+  }
+
+  .activity-invitation:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 4px;
+  }
+
+  @keyframes reveal-activity-link {
+    from { opacity: 0; transform: scaleX(0); }
+    to { opacity: 0.55; transform: scaleX(1); }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .page-turn-hint.is-hinting {
+    .activity-invitation.is-hinting::after {
       animation: none;
     }
 

@@ -428,7 +428,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
       if (currentPage === 0 && !motionPreference.matches) {
         hint?.classList.add('is-hinting')
       }
-    }, 1100)
+    }, 1600)
   }
   hint?.addEventListener('animationend', dismissTurnHint, { once: true })
   card?.addEventListener('pointerdown', dismissTurnHint, { once: true })
@@ -1598,10 +1598,11 @@ import BaseLayout from '../layouts/BaseLayout.astro'
     top: 12%;
     right: 0;
     bottom: 6rem;
-    width: 24px;
+    width: clamp(32px, 4vw, 48px);
     border-radius: 70% 0 0 70%;
-    background: linear-gradient(90deg, transparent, rgba(17, 19, 24, 0.12) 55%, #fff 90%);
-    box-shadow: -6px 0 10px -7px rgba(17, 19, 24, 0.3);
+    border-right: 5px solid var(--blue);
+    background: linear-gradient(90deg, transparent, rgba(17, 19, 24, 0.24) 45%, #f4f3ef 68%, #fff 90%);
+    box-shadow: -10px 0 16px -8px rgba(17, 19, 24, 0.4);
     opacity: 0;
     transform: scaleX(0.1);
     transform-origin: right center;
@@ -1609,12 +1610,12 @@ import BaseLayout from '../layouts/BaseLayout.astro'
   }
 
   .page-turn-hint.is-hinting {
-    animation: invite-page-turn 1400ms ease-in-out 1;
+    animation: invite-page-turn 2400ms ease-in-out 1;
   }
 
   @keyframes invite-page-turn {
     0%, 100% { opacity: 0; transform: scaleX(0.1); }
-    45%, 60% { opacity: 1; transform: scaleX(1); }
+    30%, 65% { opacity: 1; transform: scaleX(1); }
   }
 
   @media (prefers-reduced-motion: reduce) {

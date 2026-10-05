@@ -1,0 +1,84 @@
+---
+import BaseLayout from './BaseLayout.astro'
+
+interface Props {
+  title: string
+  description: string
+}
+const { title, description } = Astro.props
+---
+
+<BaseLayout title={title} description={description} pageClass="note-page" themeColor="#f4f3ef">
+  <div class="note-page-shell">
+    <header class="note-masthead">
+      <a class="note-brand" href="/" aria-label="太田一穂の名刺へ">Kazuho OHTA</a>
+      <nav aria-label="Fragmentsのナビゲーション">
+        <a href="/fragments/">記事一覧</a>
+        <a href="/">名刺へ</a>
+      </nav>
+    </header>
+    <slot />
+    <footer class="note-footer">
+      <span>太田 一穂 / Kazuho OHTA</span>
+      <a href="/">名刺へ戻る</a>
+    </footer>
+  </div>
+</BaseLayout>
+
+<style is:global>
+  body.note-page {
+    --blue: #365cff;
+    --ink: #222;
+    --line: rgba(17, 19, 24, 0.2);
+    background: #f4f3ef;
+  }
+  body.note-page .site-header { display: none; }
+  body.note-page main {
+    width: min(100% - 2rem, 1040px);
+    margin: 2rem auto;
+  }
+  .note-page-shell {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 16px 50px rgba(31, 38, 58, 0.06);
+  }
+  .note-masthead, .note-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem 1.5rem;
+    padding: 1rem clamp(1.2rem, 4vw, 3rem);
+  }
+  .note-masthead { border-bottom: 1px solid var(--line); }
+  .note-brand {
+    color: var(--ink);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.875rem;
+    letter-spacing: 0.08em;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .note-masthead nav { display: flex; gap: 1.1rem; }
+  .note-masthead nav a, .note-footer a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    font-size: 0.95rem;
+    color: #2447af;
+  }
+  .note-footer {
+    border-top: 1px solid var(--line);
+    color: #333;
+    font-size: 0.875rem;
+  }
+  .note-page a:focus-visible { outline: 2px solid var(--blue); outline-offset: 4px; }
+  .note-page time { font-family: 'Space Grotesk', sans-serif; font-size: 0.875rem; color: #444; }
+  @media (max-width: 560px) {
+    body.note-page main { width: calc(100% - 1rem); margin: 0.5rem auto; }
+  }
+</style>

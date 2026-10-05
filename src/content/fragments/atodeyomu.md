@@ -1,4 +1,9 @@
-# 積ん読PDF
+---
+title: 積ん読PDF
+date: "2021-08-24T23:59:18+09:00"
+dateSource: git-first-record
+summary: データ利活用、統計表の機械判読性、行政のDXなどに関する資料を集めたリンク集である。
+---
 
 経産省
 https://www.meti.go.jp/policy/economy/chizai/chiteki/shiryouhaifu.html

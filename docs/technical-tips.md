@@ -7,7 +7,7 @@
 - Astroで静的HTMLを生成し、GitHub Pagesへ配置する
 - 共通の`head`、viewport、フォントは`src/layouts/BaseLayout.astro`で管理する
 - トップページのカード、ページ切り替え、端末傾きは`src/pages/index.astro`で管理する
-- Memo共通枠は`src/layouts/MemoLayout.astro`で管理する
+- Fragments共通枠は`src/layouts/NoteLayout.astro`で管理する
 - 静的ファイルとfaviconは`public/`へ置く
 
 ## モバイルviewport
@@ -141,9 +141,11 @@ const isTap = Math.abs(deltaX) < 8 && Math.abs(deltaY) < 8
 
 - プロフィール: `/`
 - 活動: `/?card=activity`
-- Memo: `/?card=memo`
+- Fragments: `/fragments/`（カードとは独立した記事一覧）
 
-初期表示時にもクエリを読み、該当面を直接表示します。`/redirect/`は静的HTMLから`/?card=activity`へ遷移させることで、GitHub Pagesでもサーバー側リダイレクトを必要としません。
+初期表示時にもクエリを読み、該当面を直接表示します。`/redirect/`は静的HTMLからトップページ（`/`）へ遷移させることで、GitHub Pagesでもサーバー側リダイレクトを必要としません。
+
+旧`/?card=memo`、`/note/`、`/memo/`は`/fragments/`へ、旧`/note/{slug}/`と`/memo/{slug}/`は対応するFragmentsへ転送します。
 
 ## 端末傾きは装飾だけに使う
 

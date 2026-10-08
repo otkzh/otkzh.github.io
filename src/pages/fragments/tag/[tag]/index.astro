@@ -1,0 +1,10 @@
+---
+import FragmentsIndex from '../../../../components/FragmentsIndex.astro'
+import { fragmentTags } from '../../../../lib/notes'
+export function getStaticPaths() {
+  return fragmentTags.map(tag => ({ params: { tag }, props: { currentTag: tag } }))
+}
+interface Props { currentTag: string }
+const { currentTag } = Astro.props
+---
+<FragmentsIndex currentTag={currentTag} />

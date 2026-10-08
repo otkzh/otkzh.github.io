@@ -1,6 +1,6 @@
 ---
 import NoteLayout from '../../layouts/NoteLayout.astro'
-import { notes, formatNoteDate } from '../../lib/notes'
+import { notes, formatNoteDate, tagHref } from '../../lib/notes'
 
 export function getStaticPaths() {
   return notes.map((note) => ({ params: { slug: note.slug }, props: { note } }))
@@ -15,6 +15,7 @@ const { Content } = note.post
     <header class="note-article-header">
       <time datetime={note.date}>{formatNoteDate(note.date)}</time>
       <h1>{note.title}</h1>
+      <div class="note-tags">{note.tags.map(tag => <a href={tagHref(tag)}>{tag}</a>)}</div>
       <p class="note-summary">{note.summary}</p>
       {note.dateSource === 'git-first-record' && <p class="note-date-origin">日時は、このサイトで最初に記録された時点のものです。</p>}
     </header>
@@ -29,7 +30,7 @@ const { Content } = note.post
   .note-article { width: min(100%, 850px); margin-inline: auto; padding: clamp(2rem, 5vw, 4rem) clamp(1.2rem, 5vw, 3.5rem); }
   .note-article-header { padding-bottom: 2rem; margin-bottom: 2.5rem; border-bottom: 1px solid var(--line); }
   .note-article-header h1 { margin: 0.7rem 0 1.2rem; font-size: clamp(1.8rem, 4.5vw, 2.7rem); line-height: 1.45; letter-spacing: -0.035em; overflow-wrap: anywhere; }
-  .note-summary { margin: 0; font-size: 1rem; line-height: 1.9; color: #333; }
+  .note-summary { margin: 1rem 0 0; font-size: 1rem; line-height: 1.9; color: #333; }
   .note-date-origin { margin: 1rem 0 0; font-size: 0.875rem; color: #444; }
   .note-prose { overflow-wrap: anywhere; }
   .note-prose > :first-child { margin-top: 0; }

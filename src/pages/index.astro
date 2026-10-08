@@ -15,7 +15,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
         class="business-card"
         role="group"
         tabindex="0"
-        aria-label="名刺とActivityの2ページ構成のデジタル名刺。左半分のタップで前、右半分のタップで次へ切り替え"
+        aria-label="名刺・Activity・Web Appsの3ページ構成のデジタル名刺。左半分のタップで前、右半分のタップで次へ切り替え"
       >
         <div class="card-inner" aria-live="polite">
           <section
@@ -25,7 +25,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
           >
             <div class="card-face-header">
               <span class="card-label">DIGITAL CARD / CIVIC TECH</span>
-              <span>01 / 02</span>
+              <span>01 / 03</span>
             </div>
 
             <div class="mobile-identity">
@@ -58,7 +58,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
           >
             <div class="card-face-header back-header">
               <span>ACTIVITY / FIELDWORK</span>
-              <span>02 / 02</span>
+              <span>02 / 03</span>
             </div>
 
             <div class="activity-overview">
@@ -163,11 +163,52 @@ import BaseLayout from '../layouts/BaseLayout.astro'
             </div>
           </section>
 
+          <section class="card-face card-apps" data-card-page="2" aria-hidden="true">
+            <div class="card-face-header back-header">
+              <span>WEB APPS / EXPERIMENTS</span>
+              <span>03 / 03</span>
+            </div>
+            <header class="apps-intro">
+              <p class="activity-kicker">MAP / MOTION / SOUND</p>
+              <h2>つくったもの</h2>
+              <p>地図に書く。傾けて鳴らす。音を眺める。<br />AIと対話しながら、バイブコーディングでつくった3つのWebアプリ。</p>
+            </header>
+            <div class="apps-list">
+              <article class="app-entry">
+                <div class="app-mark" aria-hidden="true">＋</div>
+                <p class="app-category">01 / MAP</p>
+                <h3>Map Capture</h3>
+                <p>地図にメモや手書きを添えて、画像に保存。現在地や気になった場所を、ひと目で伝えられます。</p>
+                <p class="app-hint">現在地取得は位置情報の許可が必要です。</p>
+                <a href="/mapcap.html">地図に書いてみる <span aria-hidden="true">↗</span></a>
+                <a class="app-article-link" href="/fragments/map-capture-field-notes/">仕組みを読む <span aria-hidden="true">→</span></a>
+              </article>
+              <article class="app-entry">
+                <div class="app-mark" aria-hidden="true">〜</div>
+                <p class="app-category">02 / MOTION</p>
+                <h3>Gyro Beat</h3>
+                <p>スマホを傾けるとテンポと音程が変わり、振ると打楽器の音。動きで演奏する、小さな電子楽器です。</p>
+                <p class="app-hint">音が出ます。マウスやタッチでも操作できます。</p>
+                <a href="/gyrobeat.html">傾けて鳴らしてみる <span aria-hidden="true">↗</span></a>
+                <a class="app-article-link" href="/fragments/gyro-beat-motion-instrument/">仕組みを読む <span aria-hidden="true">→</span></a>
+              </article>
+              <article class="app-entry">
+                <div class="app-mark" aria-hidden="true">◎</div>
+                <p class="app-category">03 / SOUND</p>
+                <h3>Dynamic Engine</h3>
+                <p>マイクで拾った音に合わせて、光の輪や粒子が動きます。声や音楽の強弱を、映像として眺める実験です。</p>
+                <p class="app-hint">マイクの使用許可が必要です。</p>
+                <a href="/dynamic/">音を映像にしてみる <span aria-hidden="true">↗</span></a>
+                <a class="app-article-link" href="/fragments/dynamic-engine-sound-visuals/">仕組みを読む <span aria-hidden="true">→</span></a>
+              </article>
+            </div>
+          </section>
+
         </div>
 
         <footer class="card-navigation">
           <div class="card-indicators" aria-hidden="true">
-            <span class="is-current"></span><span></span>
+            <span class="is-current"></span><span></span><span></span>
           </div>
           <nav class="contact-links" aria-label="メール・SNSとFragments">
             <a
@@ -255,7 +296,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
   if (new URLSearchParams(window.location.search).get('card') === 'memo') {
     window.location.replace('/fragments/')
   }
-  const pageNames = ['profile', 'activity'] as const
+  const pageNames = ['profile', 'activity', 'apps'] as const
   const requestedPage = pageNames.indexOf(
     new URLSearchParams(window.location.search).get(
       'card',
@@ -727,10 +768,12 @@ import BaseLayout from '../layouts/BaseLayout.astro'
     .contact-links a {
       display: grid;
       width: clamp(2.35rem, 10vw, 2.7rem);
+      min-width: 44px;
+      min-height: 44px;
       aspect-ratio: 1;
       place-items: center;
       border: 1px solid currentColor;
-      border-radius: 50%;
+      border-radius: 6px;
       color: var(--ink);
       background: transparent;
       text-decoration: none;
@@ -946,10 +989,11 @@ import BaseLayout from '../layouts/BaseLayout.astro'
     .activity-links a {
       display: inline-flex;
       align-items: center;
-      padding: 0.32rem 0.58rem;
-      border: 1px solid rgba(54, 92, 255, 0.45);
-      border-radius: 999px;
-      background: rgba(54, 92, 255, 0.07);
+      min-height: 44px;
+      padding: 0.32rem 0.7rem;
+      border: 1px solid rgba(54, 92, 255, 0.35);
+      border-radius: 4px;
+      background: transparent;
       color: var(--blue);
       font-size: clamp(1rem, 2.25vw, 1.0625rem);
       font-weight: 700;
@@ -961,10 +1005,17 @@ import BaseLayout from '../layouts/BaseLayout.astro'
         transform 160ms ease;
     }
 
-    .activity-links a:hover {
-      background: var(--blue);
-      color: #fff;
-      transform: translateY(-2px);
+    .activity-links a:hover,
+    .activity-links a:focus-visible {
+      border-color: var(--blue);
+      background: #edf0ff;
+      color: #2447af;
+      transform: translateY(-1px);
+    }
+
+    .activity-links a:focus-visible {
+      outline: 2px solid var(--blue);
+      outline-offset: 3px;
     }
 
     .card-navigation {
@@ -1440,5 +1491,28 @@ import BaseLayout from '../layouts/BaseLayout.astro'
     .business-card {
       transition: none;
     }
+  }
+  .card-apps { overflow-y: auto; scrollbar-width: none; background: #f3f5ff; }
+  .apps-intro { margin: 1.25rem 0; }
+  .apps-intro h2 { margin: 0.2rem 0 0.65rem; font-size: clamp(1.8rem, 4vw, 2.6rem); line-height: 1.2; }
+  .apps-intro > p:last-child { margin: 0; font-size: 1rem; line-height: 1.8; }
+  .apps-list { display: grid; gap: 1.2rem; }
+  .app-entry { position: relative; padding: 1.1rem; border: 1px solid #c0c8e4; border-top: 3px solid var(--blue); border-radius: 6px; background: #fff; }
+  .app-mark { position: absolute; top: 0.5rem; right: 1rem; color: var(--blue); font-size: 2rem; line-height: 1; }
+  .app-category { margin: 0 0 0.4rem; color: #3650b0; font-family: 'Space Grotesk', sans-serif; font-size: 0.875rem; font-weight: 700; }
+  .app-entry h3 { margin: 0 0 0.65rem; font-family: 'Space Grotesk', sans-serif; font-size: 1.25rem; }
+  .app-entry > p { line-height: 1.75; }
+  .app-entry > p:not(.app-category) { margin: 0 0 0.8rem; }
+  .app-entry .app-hint { font-size: 0.875rem; color: #414859; }
+  .app-entry a { display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0.4rem 0; border-top: 1px solid #d5dbed; color: #2946c5; font-size: 1rem; font-weight: 700; text-decoration: none; }
+  .app-entry .app-article-link { margin-top: 0; font-weight: 500; }
+  .app-entry a:hover { text-decoration: underline; }
+  .app-entry a:focus-visible { outline: 2px solid var(--blue); outline-offset: 4px; }
+  .business-card[data-page='apps'] .card-navigation { background: #eef1ff; }
+  @media (orientation: landscape), (min-width: 900px) {
+    .apps-intro { margin: 0.8rem 0 1rem; }
+    .apps-list { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+    .app-entry { display: flex; flex-direction: column; }
+    .app-entry a { margin-top: auto; }
   }
 </style>

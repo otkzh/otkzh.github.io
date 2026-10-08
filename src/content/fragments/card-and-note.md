@@ -1,6 +1,7 @@
 ---
 title: 名刺は2面に、考えたことはFragmentsに
 date: "2026-10-06T07:59:47+09:00"
+tags: ["Web", "Structure"]
 summary: 名刺とActivityはさっとめくれる入口に、Fragmentsは文章をゆっくり読む場所に分ける。最近の活動の紹介と、変更の意図を残す構成を見直した記録である。
 ---
 

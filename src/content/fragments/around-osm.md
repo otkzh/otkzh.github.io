@@ -2,6 +2,7 @@
 title: 地図をかくことと地図にかくこと
 date: "2021-08-24T23:59:18+09:00"
 dateSource: git-first-record
+tags: ["Maps", "OpenData"]
 summary: OpenStreetMapに情報を記録することと、地図の上に独自の情報を重ねることを区別する。地図との関わり方を整理した記録である。
 ---
 

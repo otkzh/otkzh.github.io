@@ -1,10 +1,8 @@
 ---
 title: 端末の傾きは、レイアウトではなく光に使う
 date: "2026-09-12"
-tags:
-  - センサー
-  - インタラクション
 source: docs/technical-tips.md
+tags: ["Sensors", "Interaction", "Web", "Mobile"]
 summary: 端末の傾きは光や影の装飾に限定する。センサーが使えない環境でも同じ内容を読める構成を考える。
 ---
 

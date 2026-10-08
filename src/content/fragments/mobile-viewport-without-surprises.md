@@ -1,10 +1,8 @@
 ---
 title: モバイルでページ全体を縮ませないviewport設計
 date: "2026-09-12"
-tags:
-  - CSS
-  - モバイル
 source: docs/technical-tips.md
+tags: ["CSS", "Mobile", "Web"]
 summary: スマートフォンでページ全体が縮小する問題を防ぐ。viewportの指定と、画面の外へはみ出さない構造を整理する。
 ---
 

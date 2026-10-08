@@ -1,0 +1,15 @@
+---
+import FragmentsIndex from '../../../../../components/FragmentsIndex.astro'
+import { notes, fragmentTags, FRAGMENTS_PAGE_SIZE } from '../../../../../lib/notes'
+export function getStaticPaths() {
+  return fragmentTags.flatMap(tag => {
+    const totalPages = Math.ceil(notes.filter(note => note.tags.includes(tag)).length / FRAGMENTS_PAGE_SIZE)
+    return Array.from({ length: Math.max(0, totalPages - 1) }, (_, i) => ({
+      params: { tag, page: String(i + 2) }, props: { currentTag: tag, currentPage: i + 2 },
+    }))
+  })
+}
+interface Props { currentTag: string; currentPage: number }
+const { currentTag, currentPage } = Astro.props
+---
+<FragmentsIndex currentTag={currentTag} currentPage={currentPage} />

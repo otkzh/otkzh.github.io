@@ -1,10 +1,8 @@
 ---
 title: 小さい文字ほど、役割をはっきりさせる
 date: "2026-09-12"
-tags:
-  - タイポグラフィ
-  - アクセシビリティ
 source: docs/typography.md
+tags: ["Typography", "Accessibility", "Web", "Readability"]
 summary: 日付や補助ラベルも、読める大きさで表示する。小さい文字の役割を明確にし、情報を詰め込みすぎないための基準である。
 ---
 

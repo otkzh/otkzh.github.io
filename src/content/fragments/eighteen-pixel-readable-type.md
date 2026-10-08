@@ -1,9 +1,8 @@
 ---
 title: 18pxから始める、読みやすい文字設計
 date: "2026-09-12"
-tags:
-  - タイポグラフィ
 source: docs/typography.md
+tags: ["Typography", "Web", "Readability"]
 summary: 本文18pxを出発点に、行間・行の長さ・文字色を一緒に整える。幅広い年代が読み続けられる文字設計を考える。
 ---
 

@@ -1,27 +1,37 @@
 ---
 import NoteLayout from '../layouts/NoteLayout.astro'
-import { notes, formatNoteDate, FRAGMENTS_PAGE_SIZE } from '../lib/notes'
+import { notes, formatNoteDate, FRAGMENTS_PAGE_SIZE, fragmentTags, tagHref } from '../lib/notes'
 
-interface Props { currentPage?: number }
-const { currentPage = 1 } = Astro.props
-const totalPages = Math.max(1, Math.ceil(notes.length / FRAGMENTS_PAGE_SIZE))
+interface Props { currentPage?: number; currentTag?: string }
+const { currentPage = 1, currentTag } = Astro.props
+const filteredNotes = currentTag ? notes.filter(note => note.tags.includes(currentTag)) : notes
+const totalPages = Math.max(1, Math.ceil(filteredNotes.length / FRAGMENTS_PAGE_SIZE))
 const start = (currentPage - 1) * FRAGMENTS_PAGE_SIZE
-const items = notes.slice(start, start + FRAGMENTS_PAGE_SIZE)
-const pageHref = (page: number) => page === 1 ? '/fragments/' : `/fragments/page/${page}/`
-const pageTitle = currentPage === 1 ? 'Fragments — 思考の断片' : `Fragments — 思考の断片 (${currentPage} / ${totalPages})`
+const items = filteredNotes.slice(start, start + FRAGMENTS_PAGE_SIZE)
+const baseHref = currentTag ? tagHref(currentTag) : '/fragments/'
+const pageHref = (page: number) => page === 1 ? baseHref : `${baseHref}page/${page}/`
+const pageTitle = currentTag ? `${currentTag}の記事 — Fragments (${currentPage} / ${totalPages})` : currentPage === 1 ? 'Fragments — 思考の断片' : `Fragments — 思考の断片 (${currentPage} / ${totalPages})`
 ---
 
 <NoteLayout title={pageTitle} description="考えたこと、調べたこと、途中にあること。思考の断片や活動の記録を残す、太田一穂のFragmentsです。">
   <header class="note-index-hero">
-    <p class="note-kicker">THINK / MAKE / SHARE</p>
-    <h1>Fragments</h1>
-    <p class="note-subtitle">思考の断片</p>
-    <p>考えたこと、調べたこと、途中にあること。</p>
+    <div class="note-index-title">
+      <h1>思考の断片</h1>
+      <p class="note-index-author">太田 一穂 / Kazuho OHTA</p>
+    </div>
+    <p class="note-index-description">考えたこと、調べたこと、<br />途中にあること。<br /><span>つくりながら、少しずつ残していく。</span></p>
   </header>
   <section class="note-archive" aria-labelledby="archive-title">
+    <details class="tag-disclosure">
+      <summary><span>Tags</span>{currentTag && <span class="selected-tag">/ {currentTag}</span>}<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" /></svg></summary>
+      <nav class="tag-filter" aria-label="タグで記事を絞り込む">
+        <a href="/fragments/" aria-current={!currentTag ? 'page' : undefined}>All <span>{notes.length}</span></a>
+        {fragmentTags.map(tag => <a href={tagHref(tag)} aria-current={currentTag === tag ? 'page' : undefined}>{tag} <span>{notes.filter(note => note.tags.includes(tag)).length}</span></a>)}
+      </nav>
+    </details>
     <div class="archive-heading">
-      <h2 id="archive-title">記事一覧</h2>
-      <span>新しい順 · {start + 1}–{start + items.length} / {notes.length}件</span>
+      <h2 id="archive-title">{currentTag ? `${currentTag}の記事` : '記事一覧'}</h2>
+      <span>新しい順 · {start + 1}–{start + items.length} / {filteredNotes.length}件</span>
     </div>
     <ol class="note-list">
       {items.map((note) => (
@@ -33,6 +43,7 @@ const pageTitle = currentPage === 1 ? 'Fragments — 思考の断片' : `Fragmen
               <p>{note.summary}</p>
             </div>
           </a>
+          <div class="note-tags">{note.tags.map(tag => <a href={tagHref(tag)}>{tag}</a>)}</div>
         </li>
       ))}
     </ol>
@@ -49,18 +60,35 @@ const pageTitle = currentPage === 1 ? 'Fragments — 思考の断片' : `Fragmen
 </NoteLayout>
 
 <style>
-  .note-index-hero { padding: clamp(2rem, 5vw, 3.5rem) clamp(1.2rem, 4vw, 3rem); }
-  .note-kicker { margin: 0; color: #2447af; font: 700 0.875rem 'Space Grotesk', sans-serif; letter-spacing: 0.12em; }
-  h1 { margin: 0.2rem 0 1rem; font: 600 clamp(3rem, 8vw, 5rem)/1.1 'Space Grotesk', sans-serif; letter-spacing: -0.06em; }
-  .note-subtitle { margin: 0 0 0.6rem; font-size: 1.1rem; font-weight: 500; line-height: 1.6; }
-  .note-index-hero > p:last-child { margin: 0; font-size: 1rem; line-height: 1.8; }
+  .note-index-hero { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 1.5rem; margin: clamp(1.5rem, 4vw, 3rem) clamp(1.2rem, 4vw, 3rem) 2rem; padding: 0.8rem 0 0.8rem 1.2rem; border-left: 3px solid var(--blue); }
+  h1 { margin: 0 0 0.65rem; font-size: clamp(1.8rem, 4vw, 2.8rem); line-height: 1.35; letter-spacing: -0.04em; }
+  .note-index-author { margin: 0; color: #444; font-size: 0.875rem; }
+  .note-index-description { margin: 0; font-size: 1rem; line-height: 1.8; }
+  .note-index-description span { display: inline-block; margin-top: 0.5rem; font-size: 0.875rem; color: #444; }
   .note-archive { padding: 0 clamp(1.2rem, 4vw, 3rem) 2rem; }
   .archive-heading { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; justify-content: space-between; align-items: baseline; padding-bottom: 0.8rem; }
   .archive-heading h2 { margin: 0; font-size: 1.25rem; }
   .archive-heading span { font-size: 0.875rem; color: #444; }
   .note-list { margin: 0; padding: 0; list-style: none; }
   .note-list li { border-top: 1px solid var(--line); }
-  .note-list a { display: grid; grid-template-columns: 9rem minmax(0, 1fr); gap: 1rem; padding: 1.5rem 0; color: var(--ink); text-decoration: none; }
+  .note-list > li > a { display: grid; grid-template-columns: 9rem minmax(0, 1fr); gap: 1rem; padding: 1.5rem 0; color: var(--ink); text-decoration: none; }
+  .tag-disclosure { margin-bottom: 1.2rem; border-bottom: 1px solid var(--line); }
+  .tag-disclosure summary { display: flex; align-items: center; gap: 0.6rem; width: fit-content; min-height: 44px; padding: 0.3rem 0; color: #4b5260; font: 500 0.95rem 'Space Grotesk', sans-serif; list-style: none; cursor: pointer; }
+  .tag-disclosure summary::-webkit-details-marker { display: none; }
+  .tag-disclosure summary:focus-visible { outline: 2px solid var(--blue); outline-offset: 4px; }
+  .tag-disclosure summary:hover { color: #2447af; }
+  .selected-tag { color: #2447af; }
+  .tag-disclosure svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.5; transition: transform 200ms ease; }
+  .tag-disclosure[open] svg { transform: rotate(180deg); }
+  .tag-filter { display: flex; flex-wrap: wrap; gap: 0.2rem 1rem; padding: 0.3rem 0 0.9rem; }
+  .tag-disclosure[open] .tag-filter { animation: reveal-tags 220ms ease-out; }
+  .tag-filter a { display: inline-flex; align-items: center; gap: 0.35rem; min-height: 44px; padding: 0.2rem 0; color: #4b5260; font: 500 0.95rem 'Space Grotesk', sans-serif; text-decoration: none; }
+  .tag-filter a[aria-current='page'] { color: #2447af; text-decoration: underline; text-underline-offset: 0.35em; text-decoration-thickness: 2px; }
+  .tag-filter a:hover { color: #2447af; text-decoration: underline; text-underline-offset: 0.35em; }
+  .tag-filter span { font-size: 0.875rem; color: #555d6c; }
+  @keyframes reveal-tags { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+  @media (prefers-reduced-motion: reduce) { .tag-disclosure[open] .tag-filter { animation: none; } .tag-disclosure svg { transition: none; } }
+  .note-list .note-tags { margin: -0.6rem 0 1.3rem 10rem; }
   .note-list time { padding-top: 0.2rem; }
   .note-list h3 { margin: 0 0 0.55rem; font-size: clamp(1.15rem, 2.3vw, 1.5rem); line-height: 1.5; overflow-wrap: anywhere; }
   .note-list p { margin: 0; color: #333; font-size: 0.95rem; line-height: 1.8; }
@@ -70,6 +98,8 @@ const pageTitle = currentPage === 1 ? 'Fragments — 思考の断片' : `Fragmen
   .fragments-pagination [aria-current="page"] { background: var(--blue); border-color: var(--blue); color: #fff; }
   .fragments-pagination a:hover { background: #eceffd; }
   @media (max-width: 700px) {
-    .note-list a { grid-template-columns: 1fr; gap: 0.5rem; }
+    .note-list .note-tags { margin-left: 0; }
+    .note-index-hero { grid-template-columns: 1fr; gap: 1rem; }
+    .note-list > li > a { grid-template-columns: 1fr; gap: 0.5rem; }
   }
 </style>

@@ -65,20 +65,16 @@ import BaseLayout from '../layouts/BaseLayout.astro'
               <p class="activity-kicker">MEET / TALK / EXPLORE</p>
               <h2>活動</h2>
               <section class="featured-events" aria-labelledby="featured-events-title">
-                <p class="event-eyebrow">最近お手伝いしている活動</p>
-                <h3 id="featured-events-title">りっかRIKAゆんたく会</h3>
-                <p>沖縄市の「りっかRIKA」を最近お手伝いしています。10月10日は、宇宙や時間のことをみんなでゆんたく（おしゃべり）。気になる方はぜひ。</p>
-                <a class="featured-event-link" href="https://riccarika-yuntaku-03.peatix.com/view" target="_blank" rel="noreferrer">
-                  <time datetime="2026-10-10T13:00:00+09:00">10月10日（土）13:00</time>
-                  <strong>#3 宇宙について考える</strong>
-                  <span>詳しく見る・申し込む ↗</span>
+                <h3 id="featured-events-title">りっかRIKA</h3>
+                <p>コザ銀天街で、科学を楽しむ場づくりとWebのお手伝い。</p>
+                <a class="featured-event-link" href="https://sciencecafekoza.com/りっかrikaサイエンス第48回/" target="_blank" rel="noreferrer">
+                  <time datetime="2026-11-14T13:00:00+09:00">11月14日（土）13:00〜15:00</time>
+                  <strong>宇宙の謎は地下1000mから探す</strong>
+                  <span>サイエンス第48回 · 詳細・申し込み ↗</span>
                 </a>
-                <a class="featured-event-link" href="https://riccarika-yuntaku-04.peatix.com/view" target="_blank" rel="noreferrer">
-                  <time datetime="2026-10-10T19:00:00+09:00">10月10日（土）19:00</time>
-                  <strong>#4 時間とは何だ？</strong>
-                  <span>詳しく見る・申し込む ↗</span>
-                </a>
-                <a class="event-all-link" href="https://riccarika.peatix.com/" target="_blank" rel="noreferrer">りっかRIKAのイベント一覧 ↗</a>
+                <p>神岡鉱山のカムランドと生中継。<br />会場：りっかRIKA LAB</p>
+                <a class="event-all-link" href="https://sciencecafekoza.com/" target="_blank" rel="noreferrer">公式Web ↗</a>
+                <a class="event-all-link" href="https://riccarika.peatix.com/" target="_blank" rel="noreferrer">ゆんたく会・Peatix ↗</a>
               </section>
             </div>
 
@@ -86,23 +82,17 @@ import BaseLayout from '../layouts/BaseLayout.astro'
               <header class="activity-history-intro">
                 <p class="activity-kicker">ACTIVITY SUMMARY</p>
                 <h3 id="activity-history-title">これまでの活動</h3>
-                <p>まちを歩いて地図をかいたり、みんなで手を動かしたり。こんなことをしてきました。</p>
               </header>
               <article class="activity-group">
                 <header><span>01</span><h3>地図とオープンデータ</h3></header>
                 <p>
-                  まちを歩いて、見つけたことをOpenStreetMapに。Code for SAITAMAでは、防災や地域のデータを地図などで見られるようにしてきました。
+                  まちを歩いて地図をつくり、地域のデータを使いやすく。
                 </p>
                 <div class="activity-links">
                   <a
                     href="https://www.openstreetmap.org/"
                     target="_blank"
                     rel="noreferrer">OpenStreetMap ↗</a
-                  >
-                  <a
-                    href="https://www.code4saitama.org/"
-                    target="_blank"
-                    rel="noreferrer">Code for SAITAMA ↗</a
                   >
                 </div>
               </article>
@@ -112,9 +102,14 @@ import BaseLayout from '../layouts/BaseLayout.astro'
                   <span>02</span><h3>シビックテックと場づくり</h3>
                 </header>
                 <p>
-                  シビックテックさいたまやCode for CATで、勉強会や相談室を開いてきました。地域の「こうなったらいいな」を持ち寄って、みんなで考えたり、つくったり。
+                  地域の「こうなったらいいな」を、勉強会や相談室で形に。
                 </p>
                 <div class="activity-links">
+                  <a
+                    href="https://www.code4saitama.org/"
+                    target="_blank"
+                    rel="noreferrer">Code for SAITAMA ↗</a
+                  >
                   <a
                     href="https://www.civictechsaitama.com/"
                     target="_blank"
@@ -131,7 +126,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
               <article class="activity-group">
                 <header><span>03</span><h3>学びとものづくり</h3></header>
                 <p>
-                  CoderDojoで子どもたちのものづくりをお手伝い。立正大学で授業をしたり、Raspberry Piの本を一緒に書いたりもしてきました。
+                  CoderDojoでのサポート、大学の授業、Raspberry Piの本づくり。
                 </p>
                 <div class="activity-links">
                   <a
@@ -148,9 +143,19 @@ import BaseLayout from '../layouts/BaseLayout.astro'
               </article>
 
               <article class="activity-group">
-                <header><span>04</span><h3>Podcastでおしゃべり</h3></header>
+                <header><span>04</span><h3>映画・アートとまち</h3></header>
                 <p>
-                  「シビックテック井戸端キャスト」で、地域のことや日々の活動をあれこれおしゃべり。井戸端会議のような気軽なやりとりを届けています。
+                  岩槻映画祭の運営・広報、芸術祭の記録づくり。KATTEでは、まち歩きやアートを楽しむ活動にも参加。
+                </p>
+                <div class="activity-links">
+                  <a href="https://katte-lab.org/" target="_blank" rel="noreferrer">KATTE ↗</a>
+                </div>
+              </article>
+
+              <article class="activity-group">
+                <header><span>05</span><h3>Podcastでおしゃべり</h3></header>
+                <p>
+                  地域のことや日々の活動を、井戸端会議のように。
                 </p>
                 <div class="activity-links">
                   <a
@@ -905,6 +910,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
     .event-all-link {
       display: inline-block;
       padding: 0.65rem 0;
+      margin-right: 0.8rem;
       color: #fff;
       font-size: 0.95rem;
       text-underline-offset: 0.2em;
@@ -1305,7 +1311,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
       font-size: clamp(0.833rem, 1.2vw, 0.9rem);
     }
     .activity-overview h2 {
-      font-size: clamp(2.65rem, 5.6vw, 3.8rem);
+      font-size: clamp(1.75rem, 3vw, 2.1rem);
     }
 
     .activity-overview > p:last-child {

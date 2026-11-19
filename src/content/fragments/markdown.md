@@ -2,7 +2,8 @@
 title: markdownとは
 date: "2021-08-25T13:11:03+09:00"
 dateSource: git-first-record
-tags: ["Web"]
+tags: ["Web", "Human"]
+summarySource: ai
 summary: 見出し、リスト、引用、ソースコードの書き方を試す。Markdownの基本的な記法をまとめた記録である。
 ---
 

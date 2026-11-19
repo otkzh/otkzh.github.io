@@ -2,7 +2,7 @@
 title: 表裏では足りない名刺を、3ページにする
 date: "2026-09-12"
 source: docs/development-policy.md
-tags: ["Structure", "Web"]
+tags: ["Structure", "Web", "AI"]
 summary: プロフィール、活動、文章への入口を役割ごとに分ける。2026年9月に名刺を3ページにした際の情報設計の記録である。
 ---
 

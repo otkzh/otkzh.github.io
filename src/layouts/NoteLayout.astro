@@ -71,6 +71,9 @@ const { title, description } = Astro.props
   .note-tags a { display: inline-flex; align-items: center; min-height: 44px; padding: 0.2rem 0; color: #4b5260; font: 500 0.9rem 'Space Grotesk', sans-serif; text-decoration: none; }
   .note-tags a::before { content: '#'; margin-right: 0.15rem; color: #757d8c; }
   .note-tags a:hover { color: #2447af; text-decoration: underline; text-underline-offset: 0.25em; }
+  .note-tags a.tag-human { color: #8a5a12; }
+  .note-tags a.tag-human::before { color: #c59a4a; }
+  .note-tags a.tag-human:hover { color: #5b4019; }
   .note-brand-dot { color: var(--blue); }
   .note-masthead nav { display: flex; gap: 1.1rem; }
   .note-masthead nav a { text-decoration: none; }

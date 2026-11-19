@@ -2,7 +2,7 @@
 title: 演出より先に、実機で壊れないことを決める
 date: "2026-09-12"
 source: docs/development-policy.md
-tags: ["Development", "Web", "Mobile"]
+tags: ["Development", "Web", "Mobile", "AI"]
 summary: 演出よりも、文字を読めてリンクを使えることを優先する。端末ごとの違いに備える、このサイトの開発方針である。
 ---
 

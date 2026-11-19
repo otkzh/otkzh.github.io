@@ -1,7 +1,7 @@
 ---
 title: Dynamic Engine — 音の強さだけでなく、変わり方を眺める
 date: "2026-10-08T10:44:58+09:00"
-tags: ["Apps", "VibeCoding", "Audiovisual"]
+tags: ["Apps", "VibeCoding", "Audiovisual", "AI"]
 summary: マイク入力から光の輪や粒子を動かすDynamic Engine。バイブコーディングでつくった映像の実験を、音の強さ・変化量・ビート検出から掘り下げる。
 ---
 

@@ -2,7 +2,7 @@
 title: 3Dカードを画面の外へ出さずにめくる
 date: "2026-09-12"
 source: docs/technical-tips.md
-tags: ["CSS", "Interaction", "Web", "Mobile"]
+tags: ["CSS", "Interaction", "Web", "Mobile", "AI"]
 summary: カードの回転範囲と動かす要素を限定する。ページめくりによる画面全体の縮小や横ずれを防ぐための設計である。
 ---
 

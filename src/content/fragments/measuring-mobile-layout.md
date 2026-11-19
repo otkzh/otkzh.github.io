@@ -2,7 +2,7 @@
 title: モバイル表示は、スクリーンショットと数値で確かめる
 date: "2026-09-12"
 source: docs/technical-tips.md
-tags: ["Testing", "Mobile", "Web"]
+tags: ["Testing", "Mobile", "Web", "AI"]
 summary: スクリーンショットと表示幅・拡大率を組み合わせてモバイル表示を検証する。ページをめくる途中の状態も確認対象とする。
 ---
 

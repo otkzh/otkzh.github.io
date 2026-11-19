@@ -1,7 +1,7 @@
 ---
 title: サイトを支える依存パッケージを更新する
 date: "2026-11-19T11:14:25+09:00"
-tags: ["Web", "Development"]
+tags: ["Web", "Development", "AI"]
 summary: Dependabotの指摘を起点に依存パッケージを調べ、AstroとNode.jsの更新で脆弱性を解消した記録である。
 ---
 

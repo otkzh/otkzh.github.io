@@ -1,7 +1,7 @@
 ---
 title: 名刺の中で、次のサイエンスを伝える
 date: "2026-11-01T14:32:41+09:00"
-tags: ["Web", "Activity"]
+tags: ["Web", "Activity", "AI"]
 summary: サイエンス第48回を中心に、Activityの案内を名刺サイズで読みやすい量へ整理した記録である。
 ---
 

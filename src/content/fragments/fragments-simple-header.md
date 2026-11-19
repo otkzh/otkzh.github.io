@@ -1,7 +1,7 @@
 ---
 title: Fragmentsの名前をヘッダーへ
 date: "2026-10-08T10:48:00+09:00"
-tags: ["Web", "Structure"]
+tags: ["Web", "Structure", "AI"]
 summary: Fragmentsの共通ヘッダーを名前と名刺へのリンクに絞り、その下は思考の断片と記事を読むための余白に整えた。
 ---
 

@@ -2,7 +2,7 @@
 title: 内容を変えずに、縦型と横型の名刺をつくる
 date: "2026-09-12"
 source: docs/development-policy.md
-tags: ["Responsive", "Web", "Mobile"]
+tags: ["Responsive", "Web", "Mobile", "AI"]
 summary: 縦でも横でも同じ内容を届けながら、余白と配置を変える。端末の向きに合わせた名刺の読み方を考えた記録である。
 ---
 

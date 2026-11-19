@@ -2,7 +2,7 @@
 title: タップ、スワイプ、URLを同じページ状態につなぐ
 date: "2026-09-12"
 source: docs/technical-tips.md
-tags: ["JavaScript", "Interaction", "Web", "Structure"]
+tags: ["JavaScript", "Interaction", "Web", "Structure", "AI"]
 summary: タップ、スワイプ、キーボードと共有URLを同じページ状態につなぐ。2026年9月時点のカード操作の設計記録である。
 ---
 

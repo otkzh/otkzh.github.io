@@ -1,6 +1,6 @@
 ---
 import NoteLayout from '../layouts/NoteLayout.astro'
-import { notes, formatNoteDate, FRAGMENTS_PAGE_SIZE, fragmentTags, tagHref } from '../lib/notes'
+import { notes, formatNoteDate, FRAGMENTS_PAGE_SIZE, fragmentTags, tagHref, tagClass, HUMAN_TAG } from '../lib/notes'
 
 interface Props { currentPage?: number; currentTag?: string }
 const { currentPage = 1, currentTag } = Astro.props
@@ -26,16 +26,17 @@ const pageTitle = currentTag ? `${currentTag}の記事 — Fragments (${currentP
       <summary><span>Tags</span>{currentTag && <span class="selected-tag">/ {currentTag}</span>}<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" /></svg></summary>
       <nav class="tag-filter" aria-label="タグで記事を絞り込む">
         <a href="/fragments/" aria-current={!currentTag ? 'page' : undefined}>All <span>{notes.length}</span></a>
-        {fragmentTags.map(tag => <a href={tagHref(tag)} aria-current={currentTag === tag ? 'page' : undefined}>{tag} <span>{notes.filter(note => note.tags.includes(tag)).length}</span></a>)}
+        {fragmentTags.map(tag => <a href={tagHref(tag)} class={tagClass(tag)} aria-current={currentTag === tag ? 'page' : undefined}>{tag} <span>{notes.filter(note => note.tags.includes(tag)).length}</span></a>)}
       </nav>
     </details>
     <div class="archive-heading">
       <h2 id="archive-title">{currentTag ? `${currentTag}の記事` : '記事一覧'}</h2>
       <span>新しい順 · {start + 1}–{start + items.length} / {filteredNotes.length}件</span>
+      {currentTag !== HUMAN_TAG && <a class="human-link" href={tagHref(HUMAN_TAG)}>Humanだけ見る</a>}
     </div>
     <ol class="note-list">
       {items.map((note) => (
-        <li>
+        <li class={note.isHuman ? 'is-human' : undefined}>
           <a href={`/fragments/${note.slug}/`}>
             <time datetime={note.date}>{formatNoteDate(note.date)}</time>
             <div>
@@ -43,7 +44,7 @@ const pageTitle = currentTag ? `${currentTag}の記事 — Fragments (${currentP
               <p>{note.summary}</p>
             </div>
           </a>
-          <div class="note-tags">{note.tags.map(tag => <a href={tagHref(tag)}>{tag}</a>)}</div>
+          <div class="note-tags">{note.tags.map(tag => <a href={tagHref(tag)} class={tagClass(tag)}><span>{tag}</span></a>)}</div>
         </li>
       ))}
     </ol>
@@ -90,6 +91,11 @@ const pageTitle = currentTag ? `${currentTag}の記事 — Fragments (${currentP
   @media (prefers-reduced-motion: reduce) { .tag-disclosure[open] .tag-filter { animation: none; } .tag-disclosure svg { transition: none; } }
   .note-list .note-tags { margin: -0.6rem 0 1.3rem 10rem; }
   .note-list time { padding-top: 0.2rem; }
+  .note-list li.is-human { margin-left: -0.9rem; padding-left: calc(0.9rem - 2px); border-left: 2px solid #e3bf76; }
+  .human-link { display: inline-flex; align-items: center; min-height: 44px; margin-left: auto; color: #8a5a12; font: 500 0.9rem 'Space Grotesk', sans-serif; text-underline-offset: 0.25em; }
+  .human-link:hover { color: #5b4019; }
+  .tag-filter a.tag-human { color: #8a5a12; }
+  .tag-filter a.tag-human[aria-current='page'], .tag-filter a.tag-human:hover { color: #5b4019; }
   .note-list h3 { margin: 0 0 0.55rem; font-size: clamp(1.15rem, 2.3vw, 1.5rem); line-height: 1.5; overflow-wrap: anywhere; }
   .note-list p { margin: 0; color: #333; font-size: 0.95rem; line-height: 1.8; }
   .note-list a:hover h3 { color: #2447af; text-decoration: underline; text-underline-offset: 0.2em; }

@@ -1,7 +1,7 @@
 ---
 title: 名刺の3ページ目から、小さなWebアプリを試す
 date: "2026-10-08T10:42:50+09:00"
-tags: ["Apps", "VibeCoding", "Structure"]
+tags: ["Apps", "VibeCoding", "Structure", "AI"]
 summary: 地図に書く、傾けて鳴らす、音を眺める。3つのWebアプリの紹介と体験への入口を、名刺の3ページ目に追加した。
 ---
 

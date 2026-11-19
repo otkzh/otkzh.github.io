@@ -1,7 +1,7 @@
 ---
 title: Map Capture — 地図にひとこと添えて、場所を伝える
 date: "2026-10-08T10:44:56+09:00"
-tags: ["Apps", "VibeCoding", "Maps"]
+tags: ["Apps", "VibeCoding", "Maps", "AI"]
 summary: 地図と座標、文字メモ、手書きを一枚の画像にまとめるMap Capture。バイブコーディングでつくった道具を、使い方と仕組みから掘り下げる。
 ---
 

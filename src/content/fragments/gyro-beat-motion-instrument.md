@@ -1,7 +1,7 @@
 ---
 title: Gyro Beat — スマホの傾きを、テンポと音程にする
 date: "2026-10-08T10:44:57+09:00"
-tags: ["Apps", "VibeCoding", "Audiovisual"]
+tags: ["Apps", "VibeCoding", "Audiovisual", "AI"]
 summary: 左右の傾きでテンポ、前後の傾きで音程、振る動きで打楽器音。バイブコーディングでつくったGyro Beatの、身体の動きと音を結ぶ仕組みを読む。
 ---
 

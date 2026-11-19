@@ -7,6 +7,7 @@
 - Astroで静的HTMLを生成し、GitHub Pagesへ配置する
 - 共通の`head`、viewport、フォントは`src/layouts/BaseLayout.astro`で管理する
 - トップページのカード、ページ切り替え、端末傾きは`src/pages/index.astro`で管理する
+- Activity面の「次の予定」は`src/data/upcoming-events.ts`で管理する
 - Fragments共通枠は`src/layouts/NoteLayout.astro`で管理する
 - 静的ファイルとfaviconは`public/`へ置く
 
@@ -178,6 +179,33 @@ SNSフッターは各カード面へ複製せず、`.card-inner`の外側かつ`
 非表示のカード面には`aria-hidden="true"`を設定し、内部リンクを`tabIndex = -1`にします。表示面だけを`tabIndex = 0`へ戻します。
 
 SNSフッターは常時表示されるため、この切り替え対象に含めません。アイコンのみのリンクには、メールアドレスやアカウント名を含む`aria-label`を設定します。
+
+## Activityの次の予定
+
+Activity面の「次の予定」は`src/data/upcoming-events.ts`の配列から生成します。サイトは静的なので、終了時刻を過ぎたイベントは2段階で外します。
+
+- ビルド時：`getUpcomingEvents()`が終了済みのイベントを除き、開始順に並べる
+- 閲覧時：`index.astro`のスクリプトが`data-event-end`と現在時刻を比べ、終了したイベントを`hidden`にする。開始から終了までは「開催中」を表示する。開いたままのページも1分ごとと、タブへ戻ったときに更新する
+- すべて終わると「告知中の予定は、各団体のWebで。」だけを表示する。各団体の予定へのリンクは常に残す
+
+`.event-item`などに`display`を指定するときは、`[hidden]`で`display: none`に戻す指定も残します。
+
+### 予定の追い方
+
+| 団体 | 見る場所 | 確認すること |
+| --- | --- | --- |
+| シビックテックさいたま | [公式WebのNews](https://www.civictechsaitama.com/news) | 毎月の「ちいさなデジタル相談室」などの開催日。時間と会場は告知画像（`/images/YYMMDD-*.webp`）に入っている。リンク先はFacebookのイベント |
+| りっかRIKA | [公式Web](https://sciencecafekoza.com/)の最近の投稿 | サイエンス（講演）とゆんたく会の日時・会場・対象。申し込みは回ごとのPeatix |
+
+FacebookとPeatixのページは、ログインなしでは日時や会場を読めないことがあります。公式Webの記事と告知画像を一次情報にします。
+
+### 更新手順
+
+1. 上の表の場所で、今後の予定を確認する
+2. `upcomingEvents`に追加する。日時は`+09:00`付き、名刺に収まるよう`title`と`place`は短い区切りの配列にする（区切りの位置で折り返す）
+3. 終わったイベントは配列から消してよい。消し忘れても表示はされない
+4. `source`に確認した場所と日付を残す
+5. `npm run check`と`npm run build`を実行し、縦型スマートフォンで折り返しを確認する
 
 ## フォント
 
